@@ -1,6 +1,7 @@
 /target
 
 foo.py
+CrashTest.vue
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
