@@ -5,15 +5,15 @@
         </v-row>
 
         <!-- Table Header -->
-        <v-row class="header-row">
-            <v-col class="header-text" v-for="(column, index) in COLUMNS" :key="index">
+        <v-row class="table-header-row">
+            <v-col class="table-header-text" v-for="(column, index) in COLUMNS" :key="index">
                 {{ column }}
             </v-col>
         </v-row>
-        <div class="error-list">
+        <div class="table-body">
             <template v-for="(record, recordIndex) in filtredData" :key="recordIndex">
-                <v-row :class="['data-row', { 'alternate-row': recordIndex % 2 === 0 }]">
-                    <v-col class="data-text" v-for="(column, index) in COLUMNS" :key="index">
+                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]">
+                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS" :key="index">
                         {{ record[COLUMN_TRANSLATION.get(column)] }}
                     </v-col>
                 </v-row>
@@ -27,7 +27,7 @@
 import { ref, computed, defineProps, watch } from 'vue';
 import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
 import { TEST_DATA, TEST_DATA_1805, FIRST_RECORDS } from '@/config/test_data';
-
+import '../styles/table.css'
 const props = defineProps({
     selectedColumnsRows: {
         type: Map,
@@ -52,12 +52,6 @@ const filtredData = computed(() => {
 </script>
 
 <style scoped>
-.error-list {
-    flex-grow: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
 .display-card {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -71,39 +65,6 @@ const filtredData = computed(() => {
     /* Prevents the card itself from scrolling */
     border-radius: 12px;
     color: white;
-}
-
-.header-row {
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 8px 0;
-    display: flex;
-    justify-content: center;
-}
-
-.header-text {
-    font-weight: bold;
-    color: #444;
-    text-align: center;
-}
-
-.data-row {
-    background-color: #f0f0f0;
-    padding: 8px 0;
-}
-
-.alternate-row {
-    background-color: white;
-    padding: 8px 0;
-}
-
-.data-row:hover {
-    background-color: #a8a8a8;
-}
-
-.data-text {
-    color: #666;
-    text-align: center;
 }
 
 .text-h6 {

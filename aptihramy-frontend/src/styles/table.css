@@ -1,0 +1,45 @@
+.table-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.table-header-row {
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 8px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.table-header-text {
+    font-weight: bold;
+    color: #444;
+    text-align: center;
+}
+
+.table-data-row {
+    background-color: #f0f0f0;
+    padding: 8px 0;
+}
+
+.table-alternate-data-row {
+    background-color: white;
+    padding: 8px 0;
+}
+
+.table-data-row:hover {
+    background-color: #a8a8a8;
+}
+
+.table-data-text {
+    color: #666;
+    text-align: center;
+}
+
+.text-h6 {
+    color: #0056b3;
+    font-weight: bold;
+    margin: 10px;
+    text-align: center;
+}
