@@ -4,7 +4,7 @@
             class="filter-select"></v-autocomplete>
         <v-autocomplete v-model="selectedRows" :items="suggestions" label="Search..." clearable multiple
             class="filter-select"></v-autocomplete>
-        <v-btn :disabled="!canRemove" prepend-icon="mdi-nuke" color="red" rounded="lg"
+        <v-btn :disabled="!canRemove" prepend-icon="mdi-delete" color="red" rounded="lg"
             @click="$emit('deleteFilter', { id: props.id, column: selectedColumn })" class="filter-button">
             Delete filter
         </v-btn>
