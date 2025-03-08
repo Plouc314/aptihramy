@@ -2,67 +2,69 @@
     <v-row class="filter-row">
         <v-autocomplete v-model="selectedColumn" :items="remainingColumns" label="Select filter" clearable
             class="filter-select"></v-autocomplete>
+
         <v-autocomplete v-model="selectedRows" :items="suggestions" label="Search..." clearable multiple
             class="filter-select"></v-autocomplete>
+
         <v-btn :disabled="!canRemove" prepend-icon="mdi-delete" color="red" rounded="lg"
-            @click="$emit('deleteFilter', { id: props.id, column: selectedColumn })" class="filter-button">
+            @click="emit('delete-filters', { id: id, column: selectedColumn })" class="filter-button">
             Delete filter
         </v-btn>
     </v-row>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
 import { FIRST_RECORDS } from '@/config/test_data';
-import { ref, computed, watch, defineProps } from 'vue';
+import { ref, computed, watch } from 'vue';
 
-const emit = defineEmits(['edit-filters']);
+// Define props with types
+const props = defineProps<{
+    canRemove: boolean;
+    id: number;
+    remainingColumns: string[];
+}>();
 
-// Initialize selectedColumn as a string and selectedRecord as an array
-const selectedColumn = ref(null);
-const selectedRows = ref([]);
+const emit = defineEmits<{
+    (event: 'edit-filters', payload: { column: string | null; rows: string[] }): void;
+    (event: 'delete-filters', payload: { id: number; column: string | null }): void;
+}>();
 
+// Initialize selectedColumn as a string or null and selectedRows as an array of strings
+const selectedColumn = ref<string | null>(null);
+const selectedRows = ref<string[]>([]);
 
-const props = defineProps({
-    canRemove: Boolean,
-    id: Number,
-    remainingColumns: {
-        type: Array,
-        default: COLUMNS
-    }
+// Watch for column change and reset selectedRows
+watch(selectedColumn, () => {
+    selectedRows.value = [];
 });
 
-
-watch(selectedColumn, (newValue) => {
-    selectedRows.value = []; // Clear the selected records when the column changes
-});
-
+// Watch for row changes and emit event
 watch(selectedRows, (newRows) => {
-    emit('edit-filters', { column: selectedColumn.value, rows: newRows })
-})
+    emit('edit-filters', { column: selectedColumn.value, rows: newRows });
+});
 
-const rawColName = computed(() => COLUMN_TRANSLATION.get(selectedColumn.value));
+// Compute raw column name based on selectedColumn
+const rawColName = computed(() => COLUMN_TRANSLATION.get(selectedColumn.value) as string | undefined);
 
-const suggestions = computed(() => {
-    const uniques = new Set();
+// Compute suggestions based on raw column name
+const suggestions = computed((): string[] => {
+    const uniques = new Set<string>();
 
     FIRST_RECORDS
-        .map(value => value[rawColName.value])
+        .map(value => value[rawColName.value as keyof typeof value])
         .filter(value => value != null)
-        .forEach(value => uniques.add(value));
+        .forEach(value => uniques.add(value as string));
 
-    return [...uniques];
+    return Array.from(uniques.values());
 });
-
 </script>
 
 <style scoped>
 .filter-row {
     display: flex;
     align-items: center;
-    /* Align items vertically in the center */
     justify-content: center;
-    /* Center items horizontally */
     gap: 16px;
 }
 
@@ -72,7 +74,6 @@ const suggestions = computed(() => {
 
 .filter-button {
     height: 40px;
-    /* Match the height of the select elements */
     display: flex;
     align-items: center;
 }

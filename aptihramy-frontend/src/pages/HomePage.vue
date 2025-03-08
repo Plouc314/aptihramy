@@ -1,9 +1,11 @@
 <template>
+    <v-btn @click="goToUser(5)">Go to User 5</v-btn>
     <v-col>
         <v-card class="header-card">
             <v-row v-for="id in filters" :key="id" class="filter">
-                <Filter :can-remove="filters.length != 1" :id="id" :remaining-columns="[...remainingColumns]"
-                    @delete-filter="deleteFilter" @edit-filters="editFilters">
+                <Filter :can-remove="filters.length != 1" :id="id"
+                    :remaining-columns="Array.from(remainingColumns.values())" @delete-filter="deleteFilter"
+                    @edit-filters="editFilters">
                 </Filter>
             </v-row>
             <v-btn prepend-icon="mdi-plus" color="blue" rounded="lg" @click="createFilter">Add Filter</v-btn>
@@ -13,49 +15,67 @@
 
 </template>
 
-<script setup>
-import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
+<script setup lang="ts">
+import { COLUMNS } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { ref, computed, watch } from 'vue';
+import { ref } from 'vue';
 import Filter from '@/components/Filter.vue';
+import { useRouter } from 'vue-router';
 
-const selectedColumnRows = ref(new Map());
-const remainingColumns = ref(new Set([...COLUMNS]))
-
-const filters = ref([1]);
-let id = 1
-
-
-function createFilter() {
-    id += 1
-    filters.value.push(id)
+interface FilterValue {
+    id: number;
+    column: string;
+    rows: any[];
 }
 
-function deleteFilter(value) {
-    const idToRemove = value.id
-    const colToRemove = value.column
-    filters.value = filters.value.filter(id => id != idToRemove)
+// Reactive state with types
+const selectedColumnRows = ref<Map<string, any>>(new Map()); // Key is column name, value is rows
+const remainingColumns = ref<Set<string>>(new Set([...COLUMNS]));
 
+const router = useRouter();
+
+const goToUser = (userId: number) => {
+    router.push({ name: 'TrackingChain', params: { id: userId } });
+};
+
+const filters = ref<number[]>([1]);
+let id = 1;
+
+// Create a new filter
+function createFilter(): void {
+    id += 1;
+    filters.value.push(id);
+}
+
+// Delete a filter
+function deleteFilter(value: FilterValue): void {
+    const { id: idToRemove, column: colToRemove } = value;
+
+    // Remove from filters array
+    filters.value = filters.value.filter(id => id !== idToRemove);
+
+    // Remove from selectedColumnRows if it exists
     if (selectedColumnRows.value.has(colToRemove)) {
-        selectedColumnRows.value.delete(colToRemove)
+        selectedColumnRows.value.delete(colToRemove);
     }
 
-    remainingColumns.value.add(value.column)
+    // Add back to remaining columns
+    remainingColumns.value.add(colToRemove);
 }
 
-function editFilters(value) {
-    if (value.rows.length == 0 && selectedColumnRows.value.has(value.column)) {
-        selectedColumnRows.value.delete(value.column)
-        remainingColumns.value.delete(value.column)
+// Edit filters
+function editFilters(value: FilterValue): void {
+    if (value.rows.length === 0 && selectedColumnRows.value.has(value.column)) {
+        selectedColumnRows.value.delete(value.column);
+        remainingColumns.value.add(value.column);
     }
     if (value.rows.length > 0) {
-        selectedColumnRows.value.set(value.column, value.rows)
-        remainingColumns.value.delete(value.column)
+        selectedColumnRows.value.set(value.column, value.rows);
+        remainingColumns.value.delete(value.column);
     }
-
-
 }
 </script>
+
 
 <style scoped>
 .header-card {

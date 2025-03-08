@@ -10,45 +10,63 @@
                 {{ column }}
             </v-col>
         </v-row>
+
         <div class="table-body">
-            <template v-for="(record, recordIndex) in filtredData" :key="recordIndex">
-                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]">
+            <template v-for="(record, recordIndex) in filteredData" :key="recordIndex">
+                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]"
+                    @click="handleRowClick(record.index)">
                     <v-col class="table-data-text" v-for="(column, index) in COLUMNS" :key="index">
-                        {{ record[COLUMN_TRANSLATION.get(column)] }}
+                        {{ record.value[COLUMN_TRANSLATION.get(column) as string] }}
                     </v-col>
                 </v-row>
             </template>
         </div>
-
     </v-card>
 </template>
 
-<script setup>
-import { ref, computed, defineProps, watch } from 'vue';
+<script setup lang="ts">
+import { computed, defineProps } from 'vue';
 import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
-import { TEST_DATA, TEST_DATA_1805, FIRST_RECORDS } from '@/config/test_data';
-import '../styles/table.css'
-const props = defineProps({
-    selectedColumnsRows: {
-        type: Map,
-        default: new Map()
-    }
+import { FIRST_RECORDS } from '@/config/test_data';
+import { useRouter } from 'vue-router';
+import '../styles/table.css';
+
+// Define the shape of a record
+interface ValueType {
+    [key: string]: string | number
+}
+// Define the full object that includes the 'value' and 'index' fields
+interface RecordType {
+    value: ValueType;
+    index: number;
+}
+
+// Define props
+const props = defineProps<{
+    selectedColumnsRows: Map<string, string[]>;
+}>();
+const router = useRouter();
+
+// Row click handler
+const handleRowClick = (index: number): void => {
+    router.push({ name: 'TrackingChain', params: { trackedPersonIndex: index } });
+};
+
+const firstRecordIndex = FIRST_RECORDS.map((v, i) => { return { value: v, index: i } })
+
+// Computed filtered data
+const filteredData = computed<RecordType[]>(() => {
+    let result = [...firstRecordIndex];
+
+    props.selectedColumnsRows.forEach((rows, col) => {
+        const rawCol = COLUMN_TRANSLATION.get(col);
+        if (rawCol != "") {
+            result = result.filter(record => rows.includes(record.value[rawCol]));
+        }
+
+    })
+    return result
 });
-
-
-const filtredData = computed(() => {
-    let ret = FIRST_RECORDS
-
-    for (const [column, rows] of props.selectedColumnsRows) {
-        const rawCol = COLUMN_TRANSLATION.get(column)
-
-        const filtered = ret.filter(value => rows.includes(value[rawCol]));
-        ret = filtered
-    }
-    return ret
-})
-
-
 </script>
 
 <style scoped>
@@ -56,13 +74,10 @@ const filtredData = computed(() => {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     background-color: #ffffff;
-
     display: flex;
     flex-direction: column;
     max-height: 80vh;
-    /* Ensures the component does not exceed 90% of screen height */
     overflow: hidden;
-    /* Prevents the card itself from scrolling */
     border-radius: 12px;
     color: white;
 }
