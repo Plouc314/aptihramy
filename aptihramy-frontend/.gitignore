@@ -2,6 +2,9 @@
 node_modules
 /dist
 
+CrashTest.vue
+CrashTest2.vue
+
 # local env files
 .env.local
 .env.*.local

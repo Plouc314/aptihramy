@@ -1,12 +1,15 @@
+@import url("./theme.css");
+
 .table-body {
     flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
+/* Header */
 .table-header-row {
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #e0e0e0;
+    background-color: var(--background-alt);
+    border-bottom: 1px solid var(--border-color);
     padding: 8px 0;
     display: flex;
     justify-content: center;
@@ -14,31 +17,35 @@
 
 .table-header-text {
     font-weight: bold;
-    color: #444;
+    color: var(--text-primary);
     text-align: center;
 }
 
+/* Rows */
 .table-data-row {
-    background-color: #f0f0f0;
+    background-color: var(--table-alt);
     padding: 8px 0;
 }
 
 .table-alternate-data-row {
-    background-color: white;
+    background-color: var(--surface);
     padding: 8px 0;
 }
 
+/* Hover Effect */
 .table-data-row:hover {
-    background-color: #a8a8a8;
+    background-color: var(--table-hover);
 }
 
+/* Text */
 .table-data-text {
-    color: #666;
+    color: var(--text-secondary);
     text-align: center;
 }
 
+/* Titles */
 .text-h6 {
-    color: #0056b3;
+    color: var(--primary);
     font-weight: bold;
     margin: 10px;
     text-align: center;

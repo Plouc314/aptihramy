@@ -6,7 +6,7 @@
 
         <!-- Table Header -->
         <v-row class="table-header-row">
-            <v-col class="table-header-text" v-for="(column, index) in COLUMNS" :key="index">
+            <v-col class="table-header-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
                 {{ column }}
             </v-col>
         </v-row>
@@ -15,8 +15,8 @@
             <template v-for="(record, recordIndex) in filteredData" :key="recordIndex">
                 <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]"
                     @click="handleRowClick(record.index)">
-                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS" :key="index">
-                        {{ record.value[COLUMN_TRANSLATION.get(column) as string] }}
+                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
+                        {{ record.value[COLUMN_PRETTY_TO_RAW.get(column) as string] }}
                     </v-col>
                 </v-row>
             </template>
@@ -25,11 +25,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps } from 'vue';
-import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
+import { computed } from 'vue';
+import { COLUMN_PRETTY_TO_RAW, COLUMNS_PRETTY } from '@/config/constants';
 import { FIRST_RECORDS } from '@/config/test_data';
 import { useRouter } from 'vue-router';
 import '../styles/table.css';
+import '../styles/theme.css';
 
 // Define the shape of a record
 interface ValueType {
@@ -59,7 +60,7 @@ const filteredData = computed<RecordType[]>(() => {
     let result = [...firstRecordIndex];
 
     props.selectedColumnsRows.forEach((rows, col) => {
-        const rawCol = COLUMN_TRANSLATION.get(col);
+        const rawCol = COLUMN_PRETTY_TO_RAW.get(col);
         if (rawCol != "") {
             result = result.filter(record => rows.includes(record.value[rawCol]));
         }
@@ -72,18 +73,18 @@ const filteredData = computed<RecordType[]>(() => {
 <style scoped>
 .display-card {
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
+    box-shadow: 0 4px 8px "box-shadow";
+    background-color: "background";
     display: flex;
     flex-direction: column;
     max-height: 80vh;
     overflow: hidden;
     border-radius: 12px;
-    color: white;
+    color: "surface"
 }
 
 .text-h6 {
-    color: #0056b3;
+    color: "primary";
     font-weight: bold;
     margin: 10px;
     text-align: center;

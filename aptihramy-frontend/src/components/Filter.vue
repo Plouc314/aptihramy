@@ -6,17 +6,19 @@
         <v-autocomplete v-model="selectedRows" :items="suggestions" label="Search..." clearable multiple
             class="filter-select"></v-autocomplete>
 
-        <v-btn :disabled="!canRemove" prepend-icon="mdi-delete" color="red" rounded="lg"
-            @click="emit('delete-filters', { id: id, column: selectedColumn })" class="filter-button">
+        <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg"
+            @click="emit('delete-filter', { id: id, column: selectedColumn })">
             Delete filter
         </v-btn>
     </v-row>
 </template>
 
 <script setup lang="ts">
-import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
+import { COLUMN_PRETTY_TO_RAW } from '@/config/constants';
 import { FIRST_RECORDS } from '@/config/test_data';
 import { ref, computed, watch } from 'vue';
+import "../styles/theme.css";
+import "../styles/button.css";
 
 // Define props with types
 const props = defineProps<{
@@ -27,7 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (event: 'edit-filters', payload: { column: string | null; rows: string[] }): void;
-    (event: 'delete-filters', payload: { id: number; column: string | null }): void;
+    (event: 'delete-filter', payload: { id: number; column: string | null }): void;
 }>();
 
 // Initialize selectedColumn as a string or null and selectedRows as an array of strings
@@ -45,7 +47,7 @@ watch(selectedRows, (newRows) => {
 });
 
 // Compute raw column name based on selectedColumn
-const rawColName = computed(() => COLUMN_TRANSLATION.get(selectedColumn.value) as string | undefined);
+const rawColName = computed(() => COLUMN_PRETTY_TO_RAW.get(selectedColumn.value) as string | undefined);
 
 // Compute suggestions based on raw column name
 const suggestions = computed((): string[] => {
@@ -70,11 +72,5 @@ const suggestions = computed((): string[] => {
 
 .filter-select {
     flex: 1;
-}
-
-.filter-button {
-    height: 40px;
-    display: flex;
-    align-items: center;
 }
 </style>

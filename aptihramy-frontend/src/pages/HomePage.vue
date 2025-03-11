@@ -1,5 +1,5 @@
 <template>
-    <v-btn @click="goToUser(5)">Go to User 5</v-btn>
+    <test></test>
     <v-col>
         <v-card class="header-card">
             <v-row v-for="id in filters" :key="id" class="filter">
@@ -8,7 +8,8 @@
                     @edit-filters="editFilters">
                 </Filter>
             </v-row>
-            <v-btn prepend-icon="mdi-plus" color="blue" rounded="lg" @click="createFilter">Add Filter</v-btn>
+            <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="createFilter">Add
+                Filter</v-btn>
         </v-card>
         <display-people :selected-columns-rows="selectedColumnRows"></display-people>
     </v-col>
@@ -16,11 +17,15 @@
 </template>
 
 <script setup lang="ts">
-import { COLUMNS } from '@/config/constants';
+import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { useRouter } from 'vue-router';
+import test from '@/components/CrashTest2.vue';
+import '../styles/theme.css';
+import '../styles/button.css';
+
 
 interface FilterValue {
     id: number;
@@ -30,13 +35,12 @@ interface FilterValue {
 
 // Reactive state with types
 const selectedColumnRows = ref<Map<string, any>>(new Map()); // Key is column name, value is rows
-const remainingColumns = ref<Set<string>>(new Set([...COLUMNS]));
+//const remainingColumns = ref<Set<string>>(new Set([...COLUMNS_PRETTY]));
+
+const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
 
 const router = useRouter();
 
-const goToUser = (userId: number) => {
-    router.push({ name: 'TrackingChain', params: { id: userId } });
-};
 
 const filters = ref<number[]>([1]);
 let id = 1;
@@ -55,23 +59,19 @@ function deleteFilter(value: FilterValue): void {
     filters.value = filters.value.filter(id => id !== idToRemove);
 
     // Remove from selectedColumnRows if it exists
-    if (selectedColumnRows.value.has(colToRemove)) {
-        selectedColumnRows.value.delete(colToRemove);
-    }
-
-    // Add back to remaining columns
-    remainingColumns.value.add(colToRemove);
+    selectedColumnRows.value.delete(colToRemove);
 }
 
 // Edit filters
 function editFilters(value: FilterValue): void {
-    if (value.rows.length === 0 && selectedColumnRows.value.has(value.column)) {
+    // No rows are selected anymore for this column
+    if (value.rows.length === 0) {
         selectedColumnRows.value.delete(value.column);
-        remainingColumns.value.add(value.column);
+
     }
+    // New rows for the column
     if (value.rows.length > 0) {
         selectedColumnRows.value.set(value.column, value.rows);
-        remainingColumns.value.delete(value.column);
     }
 }
 </script>
@@ -80,9 +80,9 @@ function editFilters(value: FilterValue): void {
 <style scoped>
 .header-card {
     padding: 30px;
-    background-color: #f9f9f9;
+    background-color: "background";
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px "box-shadow";
     margin-bottom: 20px;
 }
 
@@ -99,7 +99,7 @@ function editFilters(value: FilterValue): void {
 }
 
 .filter-select .v-label {
-    color: #555;
+    color: "text-secondary";
     font-weight: bold;
 }
 
@@ -108,6 +108,6 @@ function editFilters(value: FilterValue): void {
 }
 
 .filter-select .v-select__selection {
-    color: #333;
+    color: "text-primary";
 }
 </style>

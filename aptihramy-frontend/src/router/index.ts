@@ -6,6 +6,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // C
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
+    name: 'HomePage',
     component: HomePage,
   },
   {
