@@ -1,5 +1,4 @@
 <template>
-    <test></test>
     <v-col>
         <v-card class="header-card">
             <v-row v-for="id in filters" :key="id" class="filter">
@@ -22,7 +21,6 @@ import DisplayPeople from '@/components/DisplayPeople.vue';
 import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { useRouter } from 'vue-router';
-import test from '@/components/CrashTest2.vue';
 import '../styles/theme.css';
 import '../styles/button.css';
 
