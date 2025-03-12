@@ -1,0 +1,46 @@
+/* Light Mode Theme */
+:root {
+    --primary: #0056B3;
+    --secondary: #3372e9;
+    --accent: #00A6FB;
+
+    --background: #F9FAFC;
+    --background-alt: #e0e0e0f3;
+    --table-hover: #a8a8a8;
+    --table-alt:#e6e6e6;;
+    --surface: #FFFFFF;
+
+    --text-primary: #212121;
+    --text-secondary: #5a5a5a;
+
+    --border-color: #E0E0E0;
+
+    --success: #00A676;
+    --warning: #FFB400;
+    --error: #D32F2F;
+    --accent-error: #ce5353;
+
+
+    --box-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Theme */
+.dark-mode {
+    --primary: #4A90E2;
+    --secondary: #007ACC;
+    --accent: #00A6FB;
+
+    --background: #121212;
+    --background-alt: #646464;
+
+    --surface: #1E1E1E;
+
+    --text-primary: #E0E0E0;
+    --text-secondary: #B0B0B0;
+
+    --border-color: #292929;
+
+    --success: #00C48C;
+    --warning: #FFCC00;
+    --error: #FF4C4C;
+}

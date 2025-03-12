@@ -1,0 +1,19 @@
+@import url("./theme.css");
+
+.ok-btn {
+    color: var(--background) !important;
+    background-color: var(--secondary) !important;
+}
+
+.ok-btn:hover {
+    background-color: var(--accent) !important;
+}
+
+.error-btn {
+    color: var(--background) !important;
+    background-color: var(--error) !important;
+}
+
+.error-btn:hover {
+    background-color: var(--accent-error) !important;
+}

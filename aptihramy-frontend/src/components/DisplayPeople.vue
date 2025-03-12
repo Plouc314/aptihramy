@@ -6,69 +6,75 @@
 
         <!-- Table Header -->
         <v-row class="table-header-row">
-            <v-col class="table-header-text" v-for="(column, index) in COLUMNS" :key="index">
+            <v-col class="table-header-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
                 {{ column }}
             </v-col>
         </v-row>
+
         <div class="table-body">
-            <template v-for="(record, recordIndex) in filtredData" :key="recordIndex">
-                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]">
-                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS" :key="index">
-                        {{ record[COLUMN_TRANSLATION.get(column)] }}
+            <template v-for="(record, recordIndex) in filteredData" :key="recordIndex">
+                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]"
+                    @click="handleRowClick(recordIndex)">
+                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
+                        {{ record[COLUMN_PRETTY_TO_RAW.get(column) as string] }}
                     </v-col>
                 </v-row>
             </template>
         </div>
-
     </v-card>
 </template>
 
-<script setup>
-import { ref, computed, defineProps, watch } from 'vue';
-import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
-import { TEST_DATA, TEST_DATA_1805, FIRST_RECORDS } from '@/config/test_data';
-import '../styles/table.css'
-const props = defineProps({
-    selectedColumnsRows: {
-        type: Map,
-        default: new Map()
-    }
+<script setup lang="ts">
+import { computed } from 'vue';
+import { COLUMN_PRETTY_TO_RAW, COLUMNS_PRETTY } from '@/config/constants';
+import { FIRST_RECORDS } from '@/config/test_data';
+import { useRouter } from 'vue-router';
+import '../styles/table.css';
+import '../styles/theme.css';
+import { RecordType, DisplayPeopleProps } from '../types/types';
+
+
+// Define props
+const props = defineProps<DisplayPeopleProps>();
+const router = useRouter();
+
+// Row click handler
+const handleRowClick = (index: number): void => {
+    router.push({ name: 'TrackingChain', params: { trackedPersonIndex: index } });
+};
+
+// Computed filtered data
+const filteredData = computed<RecordType[]>(() => {
+    let result = [...FIRST_RECORDS];
+
+    // For each selected column, multiple values (rows can be selected)
+    props.selectedColumnsRows.forEach((rows, col) => {
+        const rawCol = COLUMN_PRETTY_TO_RAW.get(col);
+        if (rawCol != "") {
+            // Discard the elements for which the value for the column is not in the selected elements (rows)
+            result = result.filter(record => rows.includes(record[rawCol]));
+        }
+
+    })
+    return result
 });
-
-
-const filtredData = computed(() => {
-    let ret = FIRST_RECORDS
-
-    for (const [column, rows] of props.selectedColumnsRows) {
-        const rawCol = COLUMN_TRANSLATION.get(column)
-
-        const filtered = ret.filter(value => rows.includes(value[rawCol]));
-        ret = filtered
-    }
-    return ret
-})
-
-
 </script>
 
 <style scoped>
 .display-card {
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
-
+    box-shadow: 0 4px 8px "box-shadow";
+    background-color: "background";
     display: flex;
     flex-direction: column;
     max-height: 80vh;
-    /* Ensures the component does not exceed 90% of screen height */
     overflow: hidden;
-    /* Prevents the card itself from scrolling */
     border-radius: 12px;
-    color: white;
+    color: "surface"
 }
 
 .text-h6 {
-    color: #0056b3;
+    color: "primary";
     font-weight: bold;
     margin: 10px;
     text-align: center;

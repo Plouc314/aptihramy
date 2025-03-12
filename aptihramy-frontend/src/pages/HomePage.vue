@@ -2,67 +2,78 @@
     <v-col>
         <v-card class="header-card">
             <v-row v-for="id in filters" :key="id" class="filter">
-                <Filter :can-remove="filters.length != 1" :id="id" :remaining-columns="[...remainingColumns]"
-                    @delete-filter="deleteFilter" @edit-filters="editFilters">
+                <Filter :can-remove="filters.length != 1" :id="id"
+                    :remaining-columns="Array.from(remainingColumns.values())" @delete-filter="deleteFilter"
+                    @edit-filters="editFilters">
                 </Filter>
             </v-row>
-            <v-btn prepend-icon="mdi-plus" color="blue" rounded="lg" @click="createFilter">Add Filter</v-btn>
+            <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="createFilter">Add
+                Filter</v-btn>
         </v-card>
         <display-people :selected-columns-rows="selectedColumnRows"></display-people>
     </v-col>
 
 </template>
 
-<script setup>
-import { COLUMN_TRANSLATION, COLUMNS } from '@/config/constants';
+<script setup lang="ts">
+import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
-
-const selectedColumnRows = ref(new Map());
-const remainingColumns = ref(new Set([...COLUMNS]))
-
-const filters = ref([1]);
-let id = 1
+import { useRouter } from 'vue-router';
+import { ColumnRows, FilterState } from "../types/types"
+import '../styles/theme.css';
+import '../styles/button.css';
 
 
-function createFilter() {
-    id += 1
-    filters.value.push(id)
+// Reactive state with types
+const selectedColumnRows = ref<ColumnRows>(new Map()); // Key is column name, value is rows
+
+const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
+
+const router = useRouter();
+
+const filters = ref<number[]>([1]);
+let id = 1;
+
+// Create a new filter
+function createFilter(): void {
+    id += 1;
+    filters.value.push(id);
 }
 
-function deleteFilter(value) {
-    const idToRemove = value.id
-    const colToRemove = value.column
-    filters.value = filters.value.filter(id => id != idToRemove)
+// Delete a filter
+function deleteFilter(value: FilterState): void {
+    const { id: idToRemove, column: colToRemove } = value;
 
-    if (selectedColumnRows.value.has(colToRemove)) {
-        selectedColumnRows.value.delete(colToRemove)
-    }
+    // Remove from filters array
+    filters.value = filters.value.filter(id => id !== idToRemove);
 
-    remainingColumns.value.add(value.column)
+    // Remove from selectedColumnRows if it exists
+    selectedColumnRows.value.delete(colToRemove);
 }
 
-function editFilters(value) {
-    if (value.rows.length == 0 && selectedColumnRows.value.has(value.column)) {
-        selectedColumnRows.value.delete(value.column)
-        remainingColumns.value.delete(value.column)
+// Edit filters
+function editFilters(value: FilterState): void {
+    // No rows are selected anymore for this column
+    if (value.rows.length === 0) {
+        selectedColumnRows.value.delete(value.column);
+
     }
+    // New rows for the column
     if (value.rows.length > 0) {
-        selectedColumnRows.value.set(value.column, value.rows)
-        remainingColumns.value.delete(value.column)
+        selectedColumnRows.value.set(value.column, value.rows);
     }
-
-
 }
 </script>
+
 
 <style scoped>
 .header-card {
     padding: 30px;
-    background-color: #f9f9f9;
+    background-color: "background";
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px "box-shadow";
     margin-bottom: 20px;
 }
 
@@ -79,7 +90,7 @@ function editFilters(value) {
 }
 
 .filter-select .v-label {
-    color: #555;
+    color: "text-secondary";
     font-weight: bold;
 }
 
@@ -88,6 +99,6 @@ function editFilters(value) {
 }
 
 .filter-select .v-select__selection {
-    color: #333;
+    color: "text-primary";
 }
 </style>
