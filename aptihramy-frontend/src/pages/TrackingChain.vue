@@ -2,38 +2,41 @@
     <v-col>
         <v-card class="pa-4">
             <v-row>
-                <v-col>
-                    <v-card-title>Track: {{ personToDisplay[0].chef_prenom }} {{
+                <v-col class="d-flex align-center">
+                    <v-tooltip location="bottom">
+                        <template v-slot:activator="{ props }">
+                            <v-icon v-bind="props" @click="goBack">
+                                mdi-arrow-left
+                            </v-icon>
+                        </template>
+                        <span>Back</span>
+                    </v-tooltip>
+
+                    <v-card-title class="card-title">Track: {{ personToDisplay[0].chef_prenom }} {{
                         personToDisplay[0].chef_nom }}</v-card-title>
                 </v-col>
 
                 <v-col class="d-flex justify-end">
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="resetZoom" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-restore</v-icon> <!-- Left Arrow -->
-                            </v-btn>
+                    <v-btn color="secondary" @click="resetZoom" size="large" v-bind="props" class="mx-2">
+                        <template v-slot:prepend>
+                            <v-icon>mdi mdi-restore</v-icon>
                         </template>
-                        <span>Reset zoom</span>
-                    </v-tooltip>
+                        Reset zoom
+                    </v-btn>
 
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="selectSomeElse" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-home</v-icon> <!-- Left Arrow -->
-                            </v-btn>
+                    <v-btn color="secondary" @click="goToHomePage" size="large" v-bind="props" class="mx-2">
+                        <template v-slot:prepend>
+                            <v-icon>mdi mdi-home</v-icon>
                         </template>
-                        <span>Home</span>
-                    </v-tooltip>
+                        Home
+                    </v-btn>
 
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="editPage" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-pencil</v-icon> <!-- Left Arrow -->
-                            </v-btn>
+                    <v-btn color="secondary" @click="goToEditPage" size="large" v-bind="props" class="mx-2">
+                        <template v-slot:prepend>
+                            <v-icon>mdi mdi-pencil</v-icon>
                         </template>
-                        <span>Edit page</span>
-                    </v-tooltip>
+                        Edit page
+                    </v-btn>
                 </v-col>
             </v-row>
         </v-card>
@@ -69,7 +72,7 @@
         <v-row>
             <v-col v-if="selectedNodeId !== null" cols="12">
                 <OneFrameInformation :frame-index="selectedNodeId" :tracked-person-index="trackedPersonIndex"
-                    :columns="2" />
+                    :nb-columns="2" />
             </v-col>
         </v-row>
     </v-col>
@@ -184,9 +187,15 @@ function previousNode() {
     zoomTo(selectedNodeId.value)
 }
 
-function selectSomeElse() {
+function goToHomePage() {
     router.push({ name: 'HomePage' });
 
+}
+function goBack() {
+    router.back()
+}
+function goToEditPage() {
+    router.push({ name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex } });
 }
 
 onMounted(() => {
@@ -256,7 +265,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 #mynetwork {
     height: 50vh;
 }
@@ -278,24 +287,7 @@ onUnmounted(() => {
     /* Adjusts the spacing between icon and text */
 }
 
-
-.test {
-    justify-content: bottom;
-    align-items: center;
-}
-
-.button {
-    margin: 10px;
-    padding: 8px 12px;
-    font-size: 16px;
-    background-color: "primary";
-    color: "surface";
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.button:hover {
-    background-color: "secondary";
+.card-title {
+    color: var(--primary)
 }
 </style>

@@ -16,7 +16,7 @@
         <div class="content">
             <v-card-item>
                 <v-row>
-                    <v-col v-for="(value, col) in frameInformation" :key="col" :cols="12 / columns" class="data-col">
+                    <v-col v-for="(value, col) in frameInformation" :key="col" :cols="12 / nbColumns" class="data-col">
                         <span class="data-title">{{ COLUMN_RAW_TO_PRETTY.get(col) }}</span>
                         <span class="data-value">{{ value }}</span>
                     </v-col>
@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { TEST_DATA } from '@/config/test_data';
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { COLUMN_RAW_TO_PRETTY } from '@/config/constants';
 import '../styles/theme.css';
 import '../styles/button.css';
@@ -36,14 +36,14 @@ import '../styles/button.css';
 const props = defineProps<{
     trackedPersonIndex: number;
     frameIndex: number;
-    columns: number;
+    nbColumns: number;
 }>();
 
 const frameInformation = computed(() => TEST_DATA[props.trackedPersonIndex][props.frameIndex]);
 const title = computed(() => `${frameInformation.value.chef_prenom} ${frameInformation.value.chef_nom}`);
 
 function showPage() {
-
+    console.log("TO BE IMPLEMENTED")
 }
 
 </script>

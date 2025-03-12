@@ -10,6 +10,7 @@ declare module 'vue' {
     CrashTest: typeof import('./src/components/CrashTest.vue')['default']
     CrashTest2: typeof import('./src/components/CrashTest2.vue')['default']
     DisplayPeople: typeof import('./src/components/DisplayPeople.vue')['default']
+    EditOneMetric: typeof import('./src/components/EditOneMetric.vue')['default']
     Filter: typeof import('./src/components/Filter.vue')['default']
     Gpt: typeof import('./src/components/Graph.vue')['default']
     Graph: typeof import('./src/components/Graph.vue')['default']

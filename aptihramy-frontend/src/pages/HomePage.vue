@@ -20,7 +20,6 @@ import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
 import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
-import { useRouter } from 'vue-router';
 import '../styles/theme.css';
 import '../styles/button.css';
 
@@ -36,8 +35,6 @@ const selectedColumnRows = ref<Map<string, any>>(new Map()); // Key is column na
 //const remainingColumns = ref<Set<string>>(new Set([...COLUMNS_PRETTY]));
 
 const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
-
-const router = useRouter();
 
 
 const filters = ref<number[]>([1]);
