@@ -1,6 +1,5 @@
 <template>
     <v-app-bar>
-
         <template v-slot:prepend>
             <v-icon @click="goBack">mdi mdi-arrow-left</v-icon>
         </template>
@@ -49,12 +48,11 @@ function goBack() {
     router.back()
 }
 
-
 </script>
 
 <style scoped>
 .top-bar-title {
     color: var(--primary);
-    
+
 }
 </style>

@@ -14,9 +14,9 @@
         <div class="table-body">
             <template v-for="(record, recordIndex) in filteredData" :key="recordIndex">
                 <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]"
-                    @click="handleRowClick(record.index)">
+                    @click="handleRowClick(recordIndex)">
                     <v-col class="table-data-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
-                        {{ record.value[COLUMN_PRETTY_TO_RAW.get(column) as string] }}
+                        {{ record[COLUMN_PRETTY_TO_RAW.get(column) as string] }}
                     </v-col>
                 </v-row>
             </template>
@@ -31,16 +31,8 @@ import { FIRST_RECORDS } from '@/config/test_data';
 import { useRouter } from 'vue-router';
 import '../styles/table.css';
 import '../styles/theme.css';
+import { RecordType } from '@/types/types';
 
-// Define the shape of a record
-interface ValueType {
-    [key: string]: string | number
-}
-// Define the full object that includes the 'value' and 'index' fields
-interface RecordType {
-    value: ValueType;
-    index: number;
-}
 
 // Define props
 const props = defineProps<{
@@ -53,16 +45,16 @@ const handleRowClick = (index: number): void => {
     router.push({ name: 'TrackingChain', params: { trackedPersonIndex: index } });
 };
 
-const firstRecordIndex = FIRST_RECORDS.map((v, i) => { return { value: v, index: i } })
-
 // Computed filtered data
 const filteredData = computed<RecordType[]>(() => {
-    let result = [...firstRecordIndex];
+    let result = [...FIRST_RECORDS];
 
+    // For each selected column, multiple values (rows can be selected)
     props.selectedColumnsRows.forEach((rows, col) => {
         const rawCol = COLUMN_PRETTY_TO_RAW.get(col);
         if (rawCol != "") {
-            result = result.filter(record => rows.includes(record.value[rawCol]));
+            // Discard the elements for which the value for the column is not in the selected elements (rows)
+            result = result.filter(record => rows.includes(record[rawCol]));
         }
 
     })
