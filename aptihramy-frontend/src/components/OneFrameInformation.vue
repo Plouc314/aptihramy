@@ -30,20 +30,17 @@
 import { TEST_DATA } from '@/config/test_data';
 import { ref, computed } from "vue";
 import { COLUMN_RAW_TO_PRETTY } from '@/config/constants';
+import { OneFrameInformationProps } from '../types/types';
 import '../styles/theme.css';
 import '../styles/button.css';
 
-const props = defineProps<{
-    trackedPersonIndex: number;
-    frameIndex: number;
-    columns: number;
-}>();
+const props = defineProps<OneFrameInformationProps>();
 
 const frameInformation = computed(() => TEST_DATA[props.trackedPersonIndex][props.frameIndex]);
 const title = computed(() => `${frameInformation.value.chef_prenom} ${frameInformation.value.chef_nom}`);
 
 function showPage() {
-
+    console.log("TO BE IMPLEMENTED")
 }
 
 </script>

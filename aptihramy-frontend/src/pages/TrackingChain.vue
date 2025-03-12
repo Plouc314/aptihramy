@@ -1,11 +1,6 @@
 <template>
     <TrackingChainTopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" :title="title"></TrackingChainTopBar>
     <v-col>
-        <!-- Graph Row -->
-        <v-row>
-            <v-col cols="12" id="mynetwork"></v-col>
-        </v-row>
-
         <!-- Navigation Buttons -->
         <v-row class="navigation-buttons" justify="center">
             <v-tooltip bottom>
@@ -27,6 +22,12 @@
                 <span>Next node</span>
             </v-tooltip>
         </v-row>
+        
+        <!-- Graph Row -->
+        <v-row>
+            <v-col cols="12" id="mynetwork"></v-col>
+        </v-row>
+
 
         <!-- Information Section Below -->
         <v-row>
@@ -39,19 +40,18 @@
 </template>
 
 
-<script setup>
-import { Network } from 'vis-network';
+<script setup lang="ts">
 import { TEST_DATA } from '@/config/test_data';
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from 'vue-router';
 import TrackingChainTopBar from '@/components/TopBars/TrackingChainTopBar.vue';
+import { TrackinChainProps } from "../types/types"
+import { Network, DataSet, Edge, Node, Options, Data } from 'vis-network';
 import '../styles/theme.css'
 import '../styles/button.css'
 
 
-const props = defineProps({
-    trackedPersonIndex: Number
-})
+const props = defineProps<TrackinChainProps>()
 
 const router = useRouter();
 const route = useRoute();
@@ -65,8 +65,9 @@ const personToDisplay = TEST_DATA[trackedPersonIndex.value];
 
 const title = ref("Track: " + personToDisplay[0].chef_prenom + " " + personToDisplay[0].chef_nom)
 
-const nodes = computed(() => {
-    return personToDisplay.map((value, index) => ({
+
+const nodes = computed<Node[]>(() =>
+    personToDisplay.map((value, index) => ({
         id: index,
         label: `${value.annee}`,
         shape: "box",
@@ -74,13 +75,13 @@ const nodes = computed(() => {
         font: {
             size: 24,
             color: "#ffffff",
-            bold: true
+            bold: "true"
         },
         x: index * 150,
         y: getRandomInt(-20, 20),
         fixed: { x: true, y: true }
     }))
-});
+);
 
 function panelColor(value) {
     // Convert percentage (0 to 100) to a color scale (green → red)
@@ -90,8 +91,8 @@ function panelColor(value) {
     return `rgb(${red}, ${green}, 110)`;
 };
 
-const edges = computed(() => {
-    return personToDisplay.slice(0, -1).map((value, i) => ({
+const edges = computed<Edge[]>(() =>
+    personToDisplay.slice(0, -1).map((value, i) => ({
         from: i,
         to: i + 1,
         color: panelColor(0),
@@ -100,12 +101,12 @@ const edges = computed(() => {
         font: {
             size: 14, // Adjust size for readability
             color: "#007bff",
-            bold: true,
-            align: "top"
+            align: "top",
+            bold: "true"
         },
         arrows: "to",
-    }));
-});
+    }))
+);
 
 
 const options = ref({
@@ -131,13 +132,12 @@ const options = ref({
         enabled: false, // Keep nodes in a fixed position
     },
 });
-
-const graph_data = computed(() => ({
+const graph_data = computed<Data>(() => ({
     nodes: nodes.value,
     edges: edges.value,
 }));
 
-function getRandomInt(min, max) {
+function getRandomInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min) + min);
 }
 

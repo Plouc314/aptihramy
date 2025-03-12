@@ -29,16 +29,12 @@
 
 <script setup lang="ts">
 import "../../styles/theme.css"
+import { TrackinChainTopBarProps } from "../../types/types"
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const props = defineProps<{
-    resetZoom: Function;
-    goToEditPage: Function;
-    title: string
-}>();
-
+const props = defineProps<TrackinChainTopBarProps>();
 
 function goToHomePage() {
     router.push({ name: 'HomePage' });

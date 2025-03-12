@@ -31,13 +31,11 @@ import { FIRST_RECORDS } from '@/config/test_data';
 import { useRouter } from 'vue-router';
 import '../styles/table.css';
 import '../styles/theme.css';
-import { RecordType } from '@/types/types';
+import { RecordType, DisplayPeopleProps } from '../types/types';
 
 
 // Define props
-const props = defineProps<{
-    selectedColumnsRows: Map<string, string[]>;
-}>();
+const props = defineProps<DisplayPeopleProps>();
 const router = useRouter();
 
 // Row click handler

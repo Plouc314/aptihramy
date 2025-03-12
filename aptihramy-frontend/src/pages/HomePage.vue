@@ -21,24 +21,17 @@ import DisplayPeople from '@/components/DisplayPeople.vue';
 import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { useRouter } from 'vue-router';
+import { ColumnRows, FilterState } from "../types/types"
 import '../styles/theme.css';
 import '../styles/button.css';
 
 
-interface FilterValue {
-    id: number;
-    column: string;
-    rows: any[];
-}
-
 // Reactive state with types
-const selectedColumnRows = ref<Map<string, any>>(new Map()); // Key is column name, value is rows
-//const remainingColumns = ref<Set<string>>(new Set([...COLUMNS_PRETTY]));
+const selectedColumnRows = ref<ColumnRows>(new Map()); // Key is column name, value is rows
 
 const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
 
 const router = useRouter();
-
 
 const filters = ref<number[]>([1]);
 let id = 1;
@@ -50,7 +43,7 @@ function createFilter(): void {
 }
 
 // Delete a filter
-function deleteFilter(value: FilterValue): void {
+function deleteFilter(value: FilterState): void {
     const { id: idToRemove, column: colToRemove } = value;
 
     // Remove from filters array
@@ -61,7 +54,7 @@ function deleteFilter(value: FilterValue): void {
 }
 
 // Edit filters
-function editFilters(value: FilterValue): void {
+function editFilters(value: FilterState): void {
     // No rows are selected anymore for this column
     if (value.rows.length === 0) {
         selectedColumnRows.value.delete(value.column);
