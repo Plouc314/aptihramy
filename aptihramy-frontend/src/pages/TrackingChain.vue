@@ -1,43 +1,6 @@
 <template>
+    <TrackingChainTopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" :title="title"></TrackingChainTopBar>
     <v-col>
-        <v-card class="pa-4">
-            <v-row>
-                <v-col>
-                    <v-card-title>Track: {{ personToDisplay[0].chef_prenom }} {{
-                        personToDisplay[0].chef_nom }}</v-card-title>
-                </v-col>
-
-                <v-col class="d-flex justify-end">
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="resetZoom" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-restore</v-icon> <!-- Left Arrow -->
-                            </v-btn>
-                        </template>
-                        <span>Reset zoom</span>
-                    </v-tooltip>
-
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="selectSomeElse" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-home</v-icon> <!-- Left Arrow -->
-                            </v-btn>
-                        </template>
-                        <span>Home</span>
-                    </v-tooltip>
-
-                    <v-tooltip location="bottom">
-                        <template v-slot:activator="{ props }">
-                            <v-btn icon color="secondary" @click="editPage" large v-bind="props" class="mx-2">
-                                <v-icon>mdi mdi-pencil</v-icon> <!-- Left Arrow -->
-                            </v-btn>
-                        </template>
-                        <span>Edit page</span>
-                    </v-tooltip>
-                </v-col>
-            </v-row>
-        </v-card>
-
         <!-- Graph Row -->
         <v-row>
             <v-col cols="12" id="mynetwork"></v-col>
@@ -81,6 +44,7 @@ import { Network } from 'vis-network';
 import { TEST_DATA } from '@/config/test_data';
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from 'vue-router';
+import TrackingChainTopBar from '@/components/TopBars/TrackingChainTopBar.vue';
 import '../styles/theme.css'
 import '../styles/button.css'
 
@@ -98,6 +62,9 @@ const selectedNodeId = ref(null)
 
 const trackedPersonIndex = computed(() => Number(route.params.trackedPersonIndex));
 const personToDisplay = TEST_DATA[trackedPersonIndex.value];
+
+const title = ref("Track: " + personToDisplay[0].chef_prenom + " " + personToDisplay[0].chef_nom)
+
 const nodes = computed(() => {
     return personToDisplay.map((value, index) => ({
         id: index,
@@ -186,7 +153,10 @@ function previousNode() {
 
 function selectSomeElse() {
     router.push({ name: 'HomePage' });
+}
 
+function goToEditPage() {
+    console.log("TO BE IMPLEMENTED")
 }
 
 onMounted(() => {

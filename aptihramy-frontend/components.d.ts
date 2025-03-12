@@ -17,5 +17,6 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Test: typeof import('./src/components/CrashTest2.vue')['default']
+    TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']
   }
 }
