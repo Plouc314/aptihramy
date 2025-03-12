@@ -6,8 +6,7 @@
         <v-autocomplete v-model="selectedRows" :items="suggestions" label="Search..." clearable multiple
             class="filter-select"></v-autocomplete>
 
-        <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg"
-            @click="emit('delete-filter', { id: id, column: selectedColumn })">
+        <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg" @click="deleteFilter">
             Delete filter
         </v-btn>
     </v-row>
@@ -19,13 +18,10 @@ import { FIRST_RECORDS } from '@/config/test_data';
 import { ref, computed, watch } from 'vue';
 import "../styles/theme.css";
 import "../styles/button.css";
+import { FilterProps, FilterState } from '../types/types';
 
 // Define props with types
-const props = defineProps<{
-    canRemove: boolean;
-    id: number;
-    remainingColumns: string[];
-}>();
+const props = defineProps<FilterProps>();
 
 const emit = defineEmits<{
     (event: 'edit-filters', payload: { column: string | null; rows: string[] }): void;
@@ -43,7 +39,8 @@ watch(selectedColumn, () => {
 
 // Watch for row changes and emit event
 watch(selectedRows, (newRows) => {
-    emit('edit-filters', { column: selectedColumn.value, rows: newRows });
+    const a: FilterState = { id: props.id, column: selectedColumn.value, rows: newRows }
+    emit('edit-filters', a);
 });
 
 // Compute raw column name based on selectedColumn
@@ -60,6 +57,12 @@ const suggestions = computed((): string[] => {
 
     return Array.from(uniques.values());
 });
+
+
+function deleteFilter() {
+    const a: FilterState = { id: props.id, column: selectedColumn.value, rows: [] }
+    emit('delete-filter', a)
+}
 </script>
 
 <style scoped>
