@@ -10,6 +10,8 @@ declare module 'vue' {
     CrashTest: typeof import('./src/components/CrashTest.vue')['default']
     CrashTest2: typeof import('./src/components/CrashTest2.vue')['default']
     DisplayPeople: typeof import('./src/components/DisplayPeople.vue')['default']
+    EditOneMetric: typeof import('./src/components/EditMetrics.vue')['default']
+    EditPageTopBar: typeof import('./src/components/TopBars/EditPageTopBar.vue')['default']
     Filter: typeof import('./src/components/Filter.vue')['default']
     Gpt: typeof import('./src/components/Graph.vue')['default']
     Graph: typeof import('./src/components/Graph.vue')['default']
@@ -17,6 +19,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Test: typeof import('./src/components/CrashTest2.vue')['default']
+    TopBar: typeof import('./src/components/TopBars/TopBar.vue')['default']
     TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']
   }
 }
