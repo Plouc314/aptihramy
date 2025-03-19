@@ -1,5 +1,7 @@
 <template>
     <v-col>
+        <ShowImage></ShowImage>
+        <v-btn @click="apiRequest">OUIIIIIIIIIIII</v-btn>
         <v-card class="header-card">
             <v-row v-for="id in filters" :key="id" class="filter">
                 <Filter :can-remove="filters.length != 1" :id="id"
@@ -18,12 +20,14 @@
 <script setup lang="ts">
 import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from "axios";
 import Filter from '@/components/Filter.vue';
 import { useRouter } from 'vue-router';
 import { ColumnRows, FilterState } from "../types/types"
 import '../styles/theme.css';
 import '../styles/button.css';
+import ShowImage from '@/components/ShowImage.vue';
 
 
 // Reactive state with types
@@ -65,6 +69,33 @@ function editFilters(value: FilterState): void {
         selectedColumnRows.value.set(value.column, value.rows);
     }
 }
+
+
+
+const data = ref(null);
+
+onMounted(async () => {
+    try {
+        const response = await axios.get("http://127.0.0.1:8000/items/2?q=test");
+        data.value = response.data;
+        console.log(data.value)
+    } catch (error) {
+        console.error("Axios error:", error);
+    }
+});
+
+function apiRequest() {
+    axios.get(`http://127.0.0.1:8000/`)
+        .then(response => {
+            if (response.data) {
+                console.log(response.data)
+            }
+        })
+        .catch(error => {
+
+            console.error('Error fetching posts:', error);
+        });
+};
 </script>
 
 

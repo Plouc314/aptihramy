@@ -16,6 +16,7 @@ declare module 'vue' {
     OneFrameInformation: typeof import('./src/components/OneFrameInformation.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ShowImage: typeof import('./src/components/ShowImage.vue')['default']
     Test: typeof import('./src/components/CrashTest2.vue')['default']
     TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']
   }
