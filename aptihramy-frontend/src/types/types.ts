@@ -42,3 +42,9 @@ export interface TrackinChainProps {
 export interface EditPageProps {
     trackedPersonIndex: number
 }
+
+export interface EditMetricsProps {
+    mostProbableOption: string,
+    probability: number,
+    options: string[],
+}

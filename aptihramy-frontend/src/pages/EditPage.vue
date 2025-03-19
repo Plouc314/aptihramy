@@ -26,7 +26,7 @@ import { CLEANED, TEST_DATA } from "@/config/test_data";
 import { COLUMNS_RAW, COLUMN_RAW_TO_PRETTY } from "@/config/constants";
 import { useRoute, useRouter } from 'vue-router';
 import TopBar from "@/components/TopBars/TopBar.vue";
-import { EditPageProps } from "@/types/types";
+import { EditPageProps } from "../types/types";
 
 const props = defineProps<EditPageProps>();
 
