@@ -1,5 +1,5 @@
 <template>
-    <TrackingChainTopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" :title="title"></TrackingChainTopBar>
+    <TopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" :title="title"></TopBar>
     <v-col>
         <!-- Navigation Buttons -->
         <v-row class="navigation-buttons" justify="center">
@@ -12,7 +12,6 @@
                 <span>Previous node</span>
             </v-tooltip>
 
-
             <v-tooltip bottom>
                 <template v-slot:activator="{ props }">
                     <v-btn icon color="primary" @click="nextNode" large v-bind="props">
@@ -22,7 +21,7 @@
                 <span>Next node</span>
             </v-tooltip>
         </v-row>
-        
+
         <!-- Graph Row -->
         <v-row>
             <v-col cols="12" id="mynetwork"></v-col>
@@ -44,7 +43,7 @@
 import { TEST_DATA } from '@/config/test_data';
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from 'vue-router';
-import TrackingChainTopBar from '@/components/TopBars/TrackingChainTopBar.vue';
+import TopBar from '@/components/TopBars/TopBar.vue';
 import { TrackinChainProps } from "../types/types"
 import { Network, DataSet, Edge, Node, Options, Data } from 'vis-network';
 import '../styles/theme.css'
@@ -151,12 +150,11 @@ function previousNode() {
     zoomTo(selectedNodeId.value)
 }
 
-function selectSomeElse() {
-    router.push({ name: 'HomePage' });
-}
 
 function goToEditPage() {
-    console.log("TO BE IMPLEMENTED")
+    router.push({
+        name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
+    });
 }
 
 onMounted(() => {

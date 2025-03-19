@@ -3,9 +3,10 @@ export interface RecordType {
     [key: string]: string | number
 }
 
-export interface TrackinChainTopBarProps {
-    resetZoom: Function;
-    goToEditPage: Function;
+
+export interface TopBarProps {
+    resetZoom?: Function;
+    goToEditPage?: Function;
     title: string;
 }
 
@@ -14,12 +15,12 @@ export type ColumnRows = Map<string, string[]>
 
 export interface DisplayPeopleProps {
     selectedColumnsRows: ColumnRows;
-} 
+}
 
 export interface OneFrameInformationProps {
     trackedPersonIndex: number;
     frameIndex: number;
-    columns: number;
+    nbColumns: number;
 }
 
 export interface FilterState {
@@ -35,5 +36,9 @@ export interface FilterProps {
 }
 
 export interface TrackinChainProps {
-    trackedPersonIndex: Number
+    trackedPersonIndex: number
+}
+
+export interface EditPageProps {
+    trackedPersonIndex: number
 }
