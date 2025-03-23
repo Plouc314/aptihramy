@@ -153,9 +153,9 @@ function previousNode() {
 
 
 function goToEditPage() {
-    router.push({
-        name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
-    });
+    // router.push({
+    //     name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
+    // });
 }
 
 onMounted(() => {
