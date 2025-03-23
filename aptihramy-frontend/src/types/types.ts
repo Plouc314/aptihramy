@@ -7,9 +7,10 @@ export interface RecordType {
 
 export type TrackerIDMemory = Map<trackerID, string[][]>
 
-export interface TrackinChainTopBarProps {
-    resetZoom: Function;
-    goToEditPage: Function;
+
+export interface TopBarProps {
+    resetZoom?: Function;
+    goToEditPage?: Function;
     title: string;
 }
 export interface FeatureValues {
@@ -27,7 +28,7 @@ export interface DisplayPeopleProps {
 export interface OneFrameInformationProps {
     trackedPersonIndex: number;
     frameIndex: number;
-    columns: number;
+    nbColumns: number;
 }
 
 export interface FilterState {
@@ -44,4 +45,14 @@ export interface FilterProps {
 
 export interface TrackinChainProps {
     trackedID: trackerID
+}
+
+export interface EditPageProps {
+    trackedPersonIndex: number
+}
+
+export interface EditMetricsProps {
+    mostProbableOption: string,
+    probability: number,
+    options: string[],
 }

@@ -16,7 +16,7 @@
         <div class="content">
             <v-card-item>
                 <v-row>
-                    <v-col v-for="(value, col) in frameInformation" :key="col" :cols="12 / columns" class="data-col">
+                    <v-col v-for="(value, col) in frameInformation" :key="col" :cols="12 / props.nbColumns" class="data-col">
                         <span class="data-title">{{ COLUMN_RAW_TO_PRETTY.get(col) }}</span>
                         <span class="data-value">{{ value }}</span>
                     </v-col>

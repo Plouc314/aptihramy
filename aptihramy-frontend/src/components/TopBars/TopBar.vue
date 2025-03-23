@@ -5,14 +5,14 @@
         </template>
 
         <v-app-bar-title class="top-bar-title">{{ title }}</v-app-bar-title>
-        <v-btn color="secondary" size="large" class="mx-2" @click="resetZoom">
+        <v-btn v-if="props.resetZoom" color="secondary" size="large" class="mx-2" @click="props.resetZoom">
             <template v-slot:prepend>
                 <v-icon>mdi mdi-restore</v-icon>
             </template>
             Reset zoom
         </v-btn>
 
-        <v-btn color="secondary" size="large" class="mx-2" @click="goToEditPage">
+        <v-btn v-if="props.goToEditPage" color="secondary" size="large" class="mx-2" @click="props.goToEditPage">
             <template v-slot:prepend>
                 <v-icon>mdi mdi-pencil</v-icon>
             </template>
@@ -29,12 +29,12 @@
 
 <script setup lang="ts">
 import "../../styles/theme.css"
-import { TrackinChainTopBarProps } from "../../types/types"
+import { TopBarProps } from "../../types/types"
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const props = defineProps<TrackinChainTopBarProps>();
+const props = defineProps<TopBarProps>();
 
 function goToHomePage() {
     router.push({ name: 'HomePage' });
