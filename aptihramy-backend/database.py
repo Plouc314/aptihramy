@@ -109,12 +109,10 @@ class Database:
         self, tracker_ids: list[ID]
     ) -> dict[ID, list[list[str]]]:
         ret = {}
-        i = 0
         for tracker_id in tracker_ids:
             ret[tracker_id] = self.get_all_memory_from_last_frame_for_tracker(
                 tracker_id
             )
-            i += 1
         return ret
 
     def get_filtred_trackers(
