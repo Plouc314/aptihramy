@@ -16,7 +16,6 @@ const uploadImage = async () => {
 
     try {
         const response = await axios.post("http://127.0.0.1:8000/upload/", formData);
-        console.log(response.data.filename)
         imageUrl.value = `http://127.0.0.1:8000/images/${response.data.filename}`;
     } catch (error) {
         console.error("Upload failed:", error);

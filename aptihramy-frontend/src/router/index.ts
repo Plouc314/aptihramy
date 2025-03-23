@@ -1,4 +1,5 @@
 // Composables
+import { parseTupleString } from '@/core/utils'
 import HomePage from '../pages/HomePage.vue'
 import TrackingChain from '@/pages/TrackingChain.vue'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // Correct import for createRouter
@@ -10,10 +11,10 @@ const routes: RouteRecordRaw[] = [
     component: HomePage,
   },
   {
-    path: '/tracking-chain/:trackedPersonIndex',
+    path: '/tracking-chain/:trackerID_1/:trackerID_2',
     name: 'TrackingChain',
     component: TrackingChain,
-    props: (route) => ({ trackedPersonIndex: Number(route.params.trackedPersonIndex) }),
+    props: true
   }
 ]
 

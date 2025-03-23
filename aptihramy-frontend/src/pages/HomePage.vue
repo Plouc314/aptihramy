@@ -1,18 +1,20 @@
 <template>
     <v-col>
-        <ShowImage></ShowImage>
-        <v-btn @click="apiRequest">OUIIIIIIIIIIII</v-btn>
         <v-card class="header-card">
-            <v-row v-for="id in filters" :key="id" class="filter">
-                <Filter :can-remove="filters.length != 1" :id="id"
-                    :remaining-columns="Array.from(remainingColumns.values())" @delete-filter="deleteFilter"
-                    @edit-filters="editFilters">
+            <v-row v-for="filter in filters" :key="filter.id" class="filter">
+                <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-columns="remainingColumns"
+                    @delete-filter="removeFilter" @edit-filters="editFilter">
                 </Filter>
             </v-row>
-            <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="createFilter">Add
-                Filter</v-btn>
+            <v-row justify="space-between">
+                <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="addFilter">Add
+                    Filter</v-btn>
+                <v-btn class="ok-btn" prepend-icon="mdi-magnify" rounded="lg" @click="search">Search</v-btn>
+            </v-row>
+
         </v-card>
-        <display-people :selected-columns-rows="selectedColumnRows"></display-people>
+
+        <display-people :data="filterResponse" :is-loading="false"></display-people>
     </v-col>
 
 </template>
@@ -20,82 +22,95 @@
 <script setup lang="ts">
 import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { ref, computed, onMounted } from 'vue';
-import axios from "axios";
+import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
-import { useRouter } from 'vue-router';
-import { ColumnRows, FilterState } from "../types/types"
+import { FilterState, TrackerIDMemory } from "../types/types"
+import { FilterRequest, } from '@/types/api_types';
 import '../styles/theme.css';
 import '../styles/button.css';
-import ShowImage from '@/components/ShowImage.vue';
+import { fetchFilteredTrackers } from '@/core/api';
+import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
+import { parseTupleString } from '@/core/utils';
 
 
-// Reactive state with types
-const selectedColumnRows = ref<ColumnRows>(new Map()); // Key is column name, value is rows
+const tfStore = trackedFeaturesStore()
+const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
-const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
-
-const router = useRouter();
-
-const filters = ref<number[]>([1]);
 let id = 1;
+const filters = ref<FilterState[]>([{ id: 1, column: "", rowInput: "" }])
+const filterResponse = ref<TrackerIDMemory>(new Map())
 
-// Create a new filter
-function createFilter(): void {
-    id += 1;
-    filters.value.push(id);
+const remainingColumns = computed<string[]>(() => {
+    if (!tracked_features.value) {
+        return [] as string[]
+    }
+
+    const usedColumns: string[] = filters.value.map(value => value.column).filter(v => v !== "")
+    const ret: string[] = []
+    for (let i = 0; i < tracked_features.value.pretty_features.length; i++) {
+        const prettyFeature = tracked_features.value.pretty_features[i]
+        if (!usedColumns.includes(prettyFeature)) {
+            ret.push(prettyFeature)
+        }
+    }
+    return ret
+})
+
+function addFilter(): void {
+    id += 1
+    const f: FilterState = { id: id, column: "", rowInput: "" }
+    filters.value.push(f)
 }
 
-// Delete a filter
-function deleteFilter(value: FilterState): void {
-    const { id: idToRemove, column: colToRemove } = value;
-
-    // Remove from filters array
-    filters.value = filters.value.filter(id => id !== idToRemove);
-
-    // Remove from selectedColumnRows if it exists
-    selectedColumnRows.value.delete(colToRemove);
+function removeFilter(filter: FilterState): void {
+    filters.value = filters.value.filter(value => value.id !== filter.id)
 }
 
-// Edit filters
-function editFilters(value: FilterState): void {
-    // No rows are selected anymore for this column
-    if (value.rows.length === 0) {
-        selectedColumnRows.value.delete(value.column);
-
+function findIndexValue(id: number): [number, FilterState] {
+    for (let i = 0; i < filters.value.length; i++) {
+        let value = filters.value[i]
+        if (value.id === id) {
+            return [i, value]
+        }
     }
-    // New rows for the column
-    if (value.rows.length > 0) {
-        selectedColumnRows.value.set(value.column, value.rows);
+    return [-1, { id: 0, column: "", rowInput: "" }]
+}
+
+function editFilter(value: FilterState): void {
+    let [index, currentValue] = findIndexValue(value.id)
+    if (index < 0) {
+        filters.value.push(value)
+    } else {
+        currentValue.column = value.column
+        currentValue.rowInput = value.rowInput
+        filters.value[index] = currentValue
     }
 }
 
 
+function search(): void {
 
-const data = ref(null);
+    const featureSearchValue: FilterRequest = new Map();
+    for (const filter of filters.value) {
+        if (tracked_features.value.pretty_features.includes(filter.column)) {
+            featureSearchValue.set(filter.column, filter.rowInput)
 
-onMounted(async () => {
-    try {
-        const response = await axios.get("http://127.0.0.1:8000/items/2?q=test");
-        data.value = response.data;
-        console.log(data.value)
-    } catch (error) {
-        console.error("Axios error:", error);
+        }
     }
-});
 
-function apiRequest() {
-    axios.get(`http://127.0.0.1:8000/`)
-        .then(response => {
-            if (response.data) {
-                console.log(response.data)
+    fetchFilteredTrackers(featureSearchValue)
+        .then((response) => {
+            const trackerIDMem: TrackerIDMemory = new Map()
+            for (const a in response.data) {
+                trackerIDMem.set(parseTupleString(a), response.data[a])
             }
+            filterResponse.value = trackerIDMem
         })
-        .catch(error => {
+        .catch((err) => {
+            console.error(err);
+        })
+}
 
-            console.error('Error fetching posts:', error);
-        });
-};
 </script>
 
 
@@ -107,8 +122,6 @@ function apiRequest() {
     box-shadow: 0 2px 4px "box-shadow";
     margin-bottom: 20px;
 }
-
-
 
 .filter {
     display: flex;

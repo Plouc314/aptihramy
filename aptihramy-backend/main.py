@@ -1,48 +1,38 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import FileResponse
-import os
-
-app = FastAPI()
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  
-    allow_credentials=True,
-    allow_methods=["*"],  
-    allow_headers=["*"],  
+import uvicorn
+from database import Database
+import polars as pl
+import blitzbeaver as bb
+import time as time
+from database_config import (
+    RECORD_SCHEMA,
+    TRACKING_CONFIG,
+    PATH_GRAPH,
+    CSV_PATH,
+    START_YEAR,
+    END_YEAR,
 )
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, FastAPI!"}
+def create_beaver_file(
+    record_schema: bb.RecordSchema,
+    tracking_config: bb.TrackerConfig,
+    path_graph: str,
+    csv_path: str,
+    start_year: int,
+    end_year: int,
+):
+    dataframes = [
+        pl.read_csv(f"{csv_path}/{year}.csv", infer_schema_length=10000)
+        for year in range(start_year, end_year + 1)
+    ]
+    graph = bb.execute_tracking(tracking_config, record_schema, dataframes, "debug")
+    bb.save_beaver(path_graph, graph)
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "query": q}
+if __name__ == "__main__":
 
-
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True) 
-
-
-@app.post("/upload/")
-async def upload_file(file: UploadFile = File(...)):
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-    return {"filename": file.filename, "file_path": file_path}
-
-
-@app.get("/images/{filename}")
-async def get_image(filename: str):
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    if os.path.exists(file_path):
-        return FileResponse(
-            file_path, media_type="image/jpeg"
-        )  # Adjust media type as needed
-    return {"error": "File not found"}
+    # create_beaver_file(
+    #     RECORD_SCHEMA, TRACKING_CONFIG, PATH_GRAPH, CSV_PATH, START_YEAR, END_YEAR
+    # )
+    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)

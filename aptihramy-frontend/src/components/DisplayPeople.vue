@@ -6,58 +6,62 @@
 
         <!-- Table Header -->
         <v-row class="table-header-row">
-            <v-col class="table-header-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
+            <v-col class="table-header-text" v-if="tracked_features"
+                v-for="(column, index) in tracked_features.pretty_features" :key="index">
                 {{ column }}
             </v-col>
         </v-row>
-
         <div class="table-body">
-            <template v-for="(record, recordIndex) in filteredData" :key="recordIndex">
-                <v-row :class="['table-data-row', { 'table-alternate-data-row': recordIndex % 2 === 0 }]"
-                    @click="handleRowClick(recordIndex)">
-                    <v-col class="table-data-text" v-for="(column, index) in COLUMNS_PRETTY" :key="index">
-                        {{ record[COLUMN_PRETTY_TO_RAW.get(column) as string] }}
+            <template v-for="([ID, record], index) of personToDisplay" :key="ID">
+                <v-row :class="['table-data-row', { 'table-alternate-data-row': index % 2 === 0 }]"
+                    @click="handleRowClick(ID)">
+                    <v-col class="table-data-text" v-for="(value, index) in record" :key="index">
+                        {{ value }}
                     </v-col>
                 </v-row>
             </template>
         </div>
+
+
     </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { COLUMN_PRETTY_TO_RAW, COLUMNS_PRETTY } from '@/config/constants';
-import { FIRST_RECORDS } from '@/config/test_data';
+
+import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import '../styles/table.css';
 import '../styles/theme.css';
-import { RecordType, DisplayPeopleProps } from '../types/types';
+import { DisplayPeopleProps } from '../types/types';
+import { trackedFeaturesStore } from '@/core/stores/trackedFeatures';
+import { trackerID } from '../types/api_types';
+import { trackedIDToString } from '@/core/utils';
+
+
+const tfStore = trackedFeaturesStore()
+const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
 
 // Define props
 const props = defineProps<DisplayPeopleProps>();
 const router = useRouter();
 
+const personToDisplay = computed(() => {
+    const m = new Map<trackerID, string[]>()
+    props.data.forEach((memory, id) => {
+        const mem = memory.map(m => m.length > 0 ? m[0] : "")
+        m.set(id, mem)
+    }
+    )
+    return m
+})
+
 // Row click handler
-const handleRowClick = (index: number): void => {
-    router.push({ name: 'TrackingChain', params: { trackedPersonIndex: index } });
+const handleRowClick = (id: trackerID): void => {
+    console.log("To be updated")
+    //router.push({ name: 'TrackingChain', params: { trackerID_1: id[0], trackerID_2: id[1] } });
 };
 
-// Computed filtered data
-const filteredData = computed<RecordType[]>(() => {
-    let result = [...FIRST_RECORDS];
-
-    // For each selected column, multiple values (rows can be selected)
-    props.selectedColumnsRows.forEach((rows, col) => {
-        const rawCol = COLUMN_PRETTY_TO_RAW.get(col);
-        if (rawCol != "") {
-            // Discard the elements for which the value for the column is not in the selected elements (rows)
-            result = result.filter(record => rows.includes(record[rawCol]));
-        }
-
-    })
-    return result
-});
 </script>
 
 <style scoped>
