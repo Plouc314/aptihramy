@@ -20,39 +20,8 @@ RECORD_SCHEMA = bb.RecordSchema(
     ]
 )
 
-TRACKING_CONFIG = bb.TrackingConfig(
-    num_threads=17,
-    tracker=bb.TrackerConfig(
-        interest_threshold=0.6,
-        limit_no_match_streak=3,
-        memory_strategy="median",
-        record_scorer=bb.RecordScorerConfig(
-            record_scorer="weighted-average",
-            weights=[
-                0.15,
-                0.25,
-                0.25,
-                0.1,
-                0.1,
-                0.1,
-            ],
-            min_weight_ratio=0.7,
-        ),
-    ),
-    distance_metric=bb.DistanceMetricConfig(
-        metric="lv_opti",
-        caching_threshold=4,
-        lv_substring_weight=0.5,
-    ),
-    resolver=bb.ResolverConfig(
-        resolving_strategy="best-match",
-    ),
-)
-
-
 db_instance = Database(
     record_schema=RECORD_SCHEMA,
-    tracking_config=TRACKING_CONFIG,
     path_graph=PATH_GRAPH,
     csv_path=CSV_PATH,
     start_year=START_YEAR,

@@ -10,7 +10,6 @@ class Database:
     def __init__(
         self,
         record_schema: bb.RecordSchema,
-        tracking_config: bb.TrackerConfig,
         path_graph: str,
         csv_path: str,
         start_year: int,
@@ -21,14 +20,12 @@ class Database:
 
         Args:
             record_schema (bb.RecordSchema): The schema defining the records.
-            tracking_config (bb.TrackerConfig): The tracking configuration.
             path_graph (str): Path to the Beaver diagnostic graph file.
             csv_path (str): Path to the folder containing CSV data used to create the beaver file.
             start_year (int): The starting year of the dataset.
             end_year (int): The ending year of the dataset.
         """
         self._record_schema = record_schema
-        self._tracking_config = tracking_config
         self._path_graph = path_graph
         self._csv_path = csv_path
         self._start_year = start_year
