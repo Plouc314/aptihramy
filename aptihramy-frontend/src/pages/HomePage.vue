@@ -1,16 +1,21 @@
 <template>
     <v-col>
+        <v-btn @click="fetchRoot"></v-btn>
         <v-card class="header-card">
-            <v-row v-for="id in filters" :key="id" class="filter">
-                <Filter :can-remove="filters.length != 1" :id="id"
-                    :remaining-columns="Array.from(remainingColumns.values())" @delete-filter="deleteFilter"
-                    @edit-filters="editFilters">
+            <v-row v-for="filter in filters" :key="filter.id" class="filter">
+                <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-columns="remainingColumns"
+                    @delete-filter="removeFilter" @edit-filters="editFilter">
                 </Filter>
             </v-row>
-            <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="createFilter">Add
-                Filter</v-btn>
+            <v-row justify="space-between">
+                <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="addFilter">Add
+                    Filter</v-btn>
+                <v-btn class="ok-btn" prepend-icon="mdi-magnify" rounded="lg" @click="search">Search</v-btn>
+            </v-row>
+
         </v-card>
-        <display-people :selected-columns-rows="selectedColumnRows"></display-people>
+
+        <display-people :data="filterResponse" :is-loading="false"></display-people>
     </v-col>
 
 </template>
@@ -18,53 +23,96 @@
 <script setup lang="ts">
 import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
+import { fetchRoot } from '@/core/api';
 import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
-import { useRouter } from 'vue-router';
-import { ColumnRows, FilterState } from "../types/types"
+import { FilterState, TrackerIDMemory } from "../types/types"
+import { FilterRequest, } from '@/types/api_types';
 import '../styles/theme.css';
 import '../styles/button.css';
+import { fetchFilteredTrackers } from '@/core/api';
+import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 
 
-// Reactive state with types
-const selectedColumnRows = ref<ColumnRows>(new Map()); // Key is column name, value is rows
+const tfStore = trackedFeaturesStore()
+const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
-const remainingColumns = computed(() => new Set([...COLUMNS_PRETTY].filter(e => !selectedColumnRows.value.has(e))))
-
-const router = useRouter();
-
-const filters = ref<number[]>([1]);
 let id = 1;
+const filters = ref<FilterState[]>([{ id: 1, column: "", rowInput: "" }])
+const filterResponse = ref<TrackerIDMemory>(new Map())
 
-// Create a new filter
-function createFilter(): void {
-    id += 1;
-    filters.value.push(id);
-}
-
-// Delete a filter
-function deleteFilter(value: FilterState): void {
-    const { id: idToRemove, column: colToRemove } = value;
-
-    // Remove from filters array
-    filters.value = filters.value.filter(id => id !== idToRemove);
-
-    // Remove from selectedColumnRows if it exists
-    selectedColumnRows.value.delete(colToRemove);
-}
-
-// Edit filters
-function editFilters(value: FilterState): void {
-    // No rows are selected anymore for this column
-    if (value.rows.length === 0) {
-        selectedColumnRows.value.delete(value.column);
-
+const remainingColumns = computed<string[]>(() => {
+    if (!tracked_features.value) {
+        return [] as string[]
     }
-    // New rows for the column
-    if (value.rows.length > 0) {
-        selectedColumnRows.value.set(value.column, value.rows);
+
+    const usedColumns: string[] = filters.value.map(value => value.column).filter(v => v !== "")
+    const ret: string[] = []
+    for (let i = 0; i < tracked_features.value.pretty_features.length; i++) {
+        const prettyFeature = tracked_features.value.pretty_features[i]
+        if (!usedColumns.includes(prettyFeature)) {
+            ret.push(prettyFeature)
+        }
+    }
+    return ret
+})
+
+function addFilter(): void {
+    id += 1
+    const f: FilterState = { id: id, column: "", rowInput: "" }
+    filters.value.push(f)
+}
+
+function removeFilter(filter: FilterState): void {
+    filters.value = filters.value.filter(value => value.id !== filter.id)
+}
+
+function findIndexValue(id: number): [number, FilterState] {
+    for (let i = 0; i < filters.value.length; i++) {
+        let value = filters.value[i]
+        if (value.id === id) {
+            return [i, value]
+        }
+    }
+    return [-1, { id: 0, column: "", rowInput: "" }]
+}
+
+function editFilter(value: FilterState): void {
+    let [index, currentValue] = findIndexValue(value.id)
+    if (index < 0) {
+        filters.value.push(value)
+    } else {
+        currentValue.column = value.column
+        currentValue.rowInput = value.rowInput
+        filters.value[index] = currentValue
     }
 }
+
+
+function search(): void {
+
+    const featureSearchValue = new Map<string, string>();
+    for (const filter of filters.value) {
+        if (tracked_features.value.pretty_features.includes(filter.column)) {
+            featureSearchValue.set(filter.column, filter.rowInput)
+
+        }
+    }
+
+    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
+    fetchFilteredTrackers(request)
+        .then((response) => {
+            const trackerIDMem: TrackerIDMemory = new Map()
+            for (const a in response.data) {
+                trackerIDMem.set(a, response.data[a])
+            }
+            filterResponse.value = trackerIDMem
+        })
+        .catch((err) => {
+            console.error(err);
+        })
+}
+
 </script>
 
 
@@ -76,8 +124,6 @@ function editFilters(value: FilterState): void {
     box-shadow: 0 2px 4px "box-shadow";
     margin-bottom: 20px;
 }
-
-
 
 .filter {
     display: flex;

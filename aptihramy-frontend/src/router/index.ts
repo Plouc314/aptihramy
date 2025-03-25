@@ -12,10 +12,10 @@ const routes: RouteRecordRaw[] = [
     component: HomePage,
   },
   {
-    path: '/tracking-chain/:trackedPersonIndex',
+    path: '/tracking-chain/:trackerID',
     name: 'TrackingChain',
     component: TrackingChain,
-    props: (route) => ({ trackedPersonIndex: Number(route.params.trackedPersonIndex) }),
+    props: true
   },
   {
     path: '/edit-page/:trackedPersonIndex',

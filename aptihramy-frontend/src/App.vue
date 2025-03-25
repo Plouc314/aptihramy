@@ -7,4 +7,9 @@
 </template>
 
 <script setup>
+import { trackedFeaturesStore } from './core/stores/trackedFeatures';
+
+const tfStore = trackedFeaturesStore()
+tfStore.fetchTrackedFeatures()
+
 </script>

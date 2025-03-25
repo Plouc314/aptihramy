@@ -59,7 +59,8 @@ const container = ref(null);
 
 const selectedNodeId = ref(null)
 
-const trackedPersonIndex = computed(() => Number(route.params.trackedPersonIndex));
+const trackedPersonIndex = computed(() => Number(route.params.trackedID_1));
+console.log(trackedPersonIndex.value)
 const personToDisplay = TEST_DATA[trackedPersonIndex.value];
 
 const title = ref("Track: " + personToDisplay[0].chef_prenom + " " + personToDisplay[0].chef_nom)
@@ -152,9 +153,9 @@ function previousNode() {
 
 
 function goToEditPage() {
-    router.push({
-        name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
-    });
+    // router.push({
+    //     name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
+    // });
 }
 
 onMounted(() => {
