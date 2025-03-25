@@ -1,5 +1,6 @@
 <template>
     <v-col>
+        <v-btn @click="fetchRoot"></v-btn>
         <v-card class="header-card">
             <v-row v-for="filter in filters" :key="filter.id" class="filter">
                 <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-columns="remainingColumns"
@@ -22,6 +23,7 @@
 <script setup lang="ts">
 import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
+import { fetchRoot } from '@/core/api';
 import { ref, computed } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
@@ -89,7 +91,7 @@ function editFilter(value: FilterState): void {
 
 function search(): void {
 
-    const featureSearchValue: FilterRequest = new Map();
+    const featureSearchValue = new Map<string, string>();
     for (const filter of filters.value) {
         if (tracked_features.value.pretty_features.includes(filter.column)) {
             featureSearchValue.set(filter.column, filter.rowInput)
@@ -97,7 +99,8 @@ function search(): void {
         }
     }
 
-    fetchFilteredTrackers(featureSearchValue)
+    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
+    fetchFilteredTrackers(request)
         .then((response) => {
             const trackerIDMem: TrackerIDMemory = new Map()
             for (const a in response.data) {

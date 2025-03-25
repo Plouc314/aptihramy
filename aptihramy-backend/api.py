@@ -7,7 +7,7 @@ import os
 from database import get_database
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
 import json
-import models
+from models import FilterRequest, FilterResponse
 
 app = FastAPI()
 
@@ -36,13 +36,24 @@ async def get_image(filename: str):
     return {"error": "File not found"}
 
 
-@app.get("/filter")
+@app.post("/filter")
 def filter_data(
-    filters: str,
+    request: FilterRequest,
     db: Database = Depends(get_database),
 ):
-    feature_search_value = json.loads(filters)
+    """
+    Filters data based on provided feature search values.
+
+    Args:
+        request (FilterRequest): JSON request body containing feature filters.
+        db (Database): Dependency-injected database instance.
+
+    Returns:
+        FilterResponse: Response containing the filtered data.
+    """
+    feature_search_value = request.filters
     raw_feature_search_value = {}
+
     for feature, search_value in feature_search_value.items():
         raw_feature = COLUMN_PRETTY_TO_RAW.get(feature)
         if raw_feature is None:
@@ -56,7 +67,7 @@ def filter_data(
         raw_feature_search_value
     )
     data = db.get_all_memory_from_last_frame_for_trackers(matching_trackers)
-    return models.FilterResponse(data=data)
+    return FilterResponse(data=data)
 
 
 @app.get("/features")

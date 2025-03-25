@@ -8,4 +8,4 @@ class FilterResponse(BaseModel):
 
 
 class FilterRequest(BaseModel):
-    data: Dict[str, str]
+    filters: Dict[str, str]
