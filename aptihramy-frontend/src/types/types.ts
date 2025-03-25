@@ -41,6 +41,7 @@ export interface FilterProps {
     canRemove: boolean;
     id: number;
     remainingColumns: string[];
+    suggestions: string[];
 }
 
 export interface TrackinChainProps {
@@ -55,4 +56,9 @@ export interface EditMetricsProps {
     mostProbableOption: string,
     probability: number,
     options: string[],
+}
+
+export interface Snackbar {
+    message: string,
+    type: string
 }

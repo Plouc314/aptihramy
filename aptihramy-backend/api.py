@@ -8,7 +8,7 @@ from database import get_database
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
 import json
 from models import FilterRequest, FilterResponse
-
+import time
 app = FastAPI()
 
 
@@ -61,7 +61,6 @@ def filter_data(
                 status_code=400, detail=f"Invalid feature name: {feature}"
             )
         raw_feature_search_value[raw_feature] = [search_value]
-
     # Fetch matching trackers from the database
     matching_trackers = db.get_filtred_trackers_multiple_features(
         raw_feature_search_value

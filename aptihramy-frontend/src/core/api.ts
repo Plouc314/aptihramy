@@ -1,5 +1,7 @@
 import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation } from "../types/api_types"
+import { useSnackbarQueue } from "./snackbarQueue";
 // Create an Axios instance
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 const BASE_URL = "http://127.0.0.1:8000";
 const DEFAULT_HEADERS = {
@@ -11,7 +13,7 @@ async function fetchData<T>(endpoint: string, options: RequestInit): Promise<T> 
 
     try {
         const response = await fetch(url, options);
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) addSnackbar(`HTTP error! Status: ${response.status}`, snackbarTypes.ERROR);
         return await response.json();
     } catch (error) {
         console.error(`Fetch error on ${url}: `, error);
@@ -24,7 +26,6 @@ export async function fetchRoot(): Promise<Root> {
 }
 
 export async function fetchFilteredTrackers(featureSearchValue: FilterRequest): Promise<FilterResponse> {
-    console.log(featureSearchValue)
     return fetchData<FilterResponse>("/filter", { method: "POST", headers: DEFAULT_HEADERS, body: JSON.stringify(featureSearchValue) });
 }
 

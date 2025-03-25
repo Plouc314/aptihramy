@@ -28,6 +28,5 @@ db_instance = Database(
     end_year=END_YEAR,
 )
 
-
 def get_database() -> Database:
     return db_instance
