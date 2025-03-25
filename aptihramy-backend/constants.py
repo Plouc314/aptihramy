@@ -14,3 +14,5 @@ COLUMN_PRETTY_TO_RAW = {
 COLUMN_RAW_TO_PRETTY = {value: key for key, value in COLUMN_PRETTY_TO_RAW.items()}
 
 COLUMNS_PRETTY = list(COLUMN_PRETTY_TO_RAW.keys())
+
+FOLDER_PATH = "pages"

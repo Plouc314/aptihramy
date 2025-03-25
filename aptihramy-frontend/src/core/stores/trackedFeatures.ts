@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getTrackedFeatures } from '@/core/api';
+import { fetchTrackedFeatures } from '@/core/api';
 import { TrackedFeatures } from '@/types/api_types';
 
 
@@ -11,7 +11,7 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
     },
     actions: {
         fetchTrackedFeatures() {
-            getTrackedFeatures()
+            fetchTrackedFeatures()
                 .then((data) => {
                     this.trackedFeatures = data;
                 })

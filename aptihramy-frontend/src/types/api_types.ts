@@ -1,8 +1,8 @@
-export type trackerID = [number, number];
+export type trackerID = string;
 
 
 export interface FilterResponse {
-    data: Map<string, string[][]>
+    data: Record<trackerID, string[][]>
 }
 
 export interface FilterResponseTest {
@@ -20,7 +20,7 @@ export interface Root {
     message: string
 }
 
-export interface TrackerInformation{
+export interface TrackerInformation {
 
 }
 

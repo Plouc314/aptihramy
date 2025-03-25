@@ -30,7 +30,6 @@ import '../styles/theme.css';
 import '../styles/button.css';
 import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { parseTupleString } from '@/core/utils';
 
 
 const tfStore = trackedFeaturesStore()
@@ -102,7 +101,7 @@ function search(): void {
         .then((response) => {
             const trackerIDMem: TrackerIDMemory = new Map()
             for (const a in response.data) {
-                trackerIDMem.set(parseTupleString(a), response.data[a])
+                trackerIDMem.set(a, response.data[a])
             }
             filterResponse.value = trackerIDMem
         })

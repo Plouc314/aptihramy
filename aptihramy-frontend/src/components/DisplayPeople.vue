@@ -35,7 +35,6 @@ import '../styles/theme.css';
 import { DisplayPeopleProps } from '../types/types';
 import { trackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { trackerID } from '../types/api_types';
-import { trackedIDToString } from '@/core/utils';
 
 
 const tfStore = trackedFeaturesStore()
@@ -51,8 +50,7 @@ const personToDisplay = computed(() => {
     props.data.forEach((memory, id) => {
         const mem = memory.map(m => m.length > 0 ? m[0] : "")
         m.set(id, mem)
-    }
-    )
+    })
     return m
 })
 

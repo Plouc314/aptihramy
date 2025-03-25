@@ -35,7 +35,7 @@ class Database:
         self._end_year = end_year
         self._graph = bb.read_beaver(path_graph)
         self._feature_indexes = self._get_feature_indexes()
-        self._feature_last_frame_value = self._get_last_frame_values_for_all_features()
+        self._feature_last_frame_value = self._build_last_frame_values()
 
     def _get_feature_indexes(self) -> dict[str, int]:
         d = {}
@@ -47,6 +47,39 @@ class Database:
         d = {}
         for schema in self._record_schema.fields:
             d[schema.name] = self.get_last_frame_values_of_feature(schema.name)
+        return d
+
+    def _build_last_frame_values(self) -> dict[str, dict[ID, list[str]]]:
+        """
+        Constructs a nested dictionary containing the last recorded memory values for each feature
+        from the latest diagnostic frame of each tracker.
+
+        feature -> trackerId -> [feature values of the last frame for this tracker]
+        
+        Returns:
+            dict[str, dict[ID, list[str]]]: A dictionary where:
+                - Keys are feature names (from schema).
+                - Values are dictionaries mapping tracker IDs to their last recorded memory values.
+        """
+        d = {}
+        for schema in self._record_schema.fields:
+            feature_index = self.get_feature_index(schema.name)
+            if feature_index is None:
+                continue
+
+            tracker_feature_mem = {}
+
+            for (
+                tracker_id,
+                tracker_diagnostic,
+            ) in self._graph.diagnostics.trackers.items():
+                if len(tracker_diagnostic.frames) > 0:
+                    last_diagnostic = tracker_diagnostic.frames[-1]
+                    tracker_feature_mem[tracker_id] = last_diagnostic.memory[
+                        feature_index
+                    ]
+
+            d[schema.name] = tracker_feature_mem
         return d
 
     def get_dataframes(self) -> list[pl.DataFrame]:
@@ -62,9 +95,24 @@ class Database:
         ]
 
     def get_feature_index(self, raw_feature: str) -> int | None:
-        return self._feature_indexes[raw_feature]
+        return self._feature_indexes.get(raw_feature)
 
     def get_last_frame_values_of_feature(
+        self, raw_feature: str
+    ) -> dict[ID, list[str]] | None:
+        """
+        Retrieves the values of the last frame for a feature for all trackers.
+
+        Args:
+            raw_feature (str): The raw feature name.
+
+        Returns:
+            dict[ID, list[str]] | None: A dictionary mapping tracker IDs to
+            their last recorded feature values, or None if the feature is not found.
+        """
+        return self._feature_last_frame_value.get(raw_feature)
+
+    def _get_last_frame_values_of_feature(
         self, raw_feature: str
     ) -> dict[ID, list[str]] | None:
         """
@@ -130,7 +178,7 @@ class Database:
         """
         tracker_feature_mem = self._feature_last_frame_value.get(raw_feature)
         if not tracker_feature_mem:
-            return {}
+            return set()
 
         matching_trackers: set[ID] = set()
         for tracker_id, mem_values in tracker_feature_mem.items():

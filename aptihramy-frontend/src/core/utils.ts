@@ -1,15 +1,3 @@
-import { trackerID } from "@/types/api_types";
-
-export function parseTupleString(input: string): trackerID {
-    return input
-        .replace(/[()]/g, '') // Remove parentheses
-        .split(',')            // Split by comma
-        .map(num => parseFloat(num.trim())) as trackerID; // Convert to number
-}
-
-export function trackedIDToString(input: trackerID): string {
-    return `(${input[0]}, ${input[1]})`
-}
 // Convert percentage (0 to 100) to a color scale (red → green)
 export function getPanelColor(value: number) {
     const red = Math.min(255, Math.floor((1 - value) * 255));

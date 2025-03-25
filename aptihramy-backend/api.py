@@ -1,20 +1,13 @@
-from fastapi import FastAPI, Depends, Query, Form
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile, HTTPException
 from blitzbeaver.literals import ID
 from fastapi.responses import FileResponse
 from database import Database
 import os
-from database_config import get_database
-from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW
-from pydantic import BaseModel
-from typing import Dict, List
-import time as time
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from typing import Dict
-import ast
+from database import get_database
+from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
 import json
+import models
 
 app = FastAPI()
 
@@ -28,19 +21,9 @@ app.add_middleware(
 )
 
 
-class FilterResponse(BaseModel):
-    data: Dict[ID, List[List[str]]]
-
-
-class FilterRequest(BaseModel):
-    data: Dict[str, str]
-
-
 @app.get("/")
 def read_root():
     return {"message": "Hello, FastAPI!"}
-
-FOLDER_PATH = "pages"
 
 
 @app.get("/images/{filename}")
@@ -73,7 +56,7 @@ def filter_data(
         raw_feature_search_value
     )
     data = db.get_all_memory_from_last_frame_for_trackers(matching_trackers)
-    return FilterResponse(data=data)
+    return models.FilterResponse(data=data)
 
 
 @app.get("/features")
@@ -83,6 +66,6 @@ def get_tracked_features(db: Database = Depends(get_database)):
 
 
 @app.get("/tracker")
-async def get_tracker_id_information(tracker_id_1: int, tracker_id_2: int):
+def get_tracker_id_information(tracker_id_1: int, tracker_id_2: int):
     tracker_id: ID = tuple(tracker_id_1, tracker_id_2)
     return {"item_id": tracker_id}
