@@ -65,7 +65,6 @@ class Database:
                 continue
 
             tracker_feature_mem = {}
-            self._graph.trackers_ids
             for tracker_id in self._graph.trackers_ids:
                 tracker_diagnostic = self._graph.diagnostics.get_tracker(tracker_id)
                 if tracker_diagnostic is not None and len(tracker_diagnostic.frames) > 0:

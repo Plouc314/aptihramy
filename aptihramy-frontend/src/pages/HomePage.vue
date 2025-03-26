@@ -69,6 +69,7 @@ function addFilter(): void {
 
 function removeFilter(filter: FilterState): void {
     filters.value = filters.value.filter(value => value.id !== filter.id)
+    search()
 }
 
 function getSuggestions(column: string): string[] {
@@ -141,11 +142,10 @@ function search(): void {
                 trackerIDMem.set(a, response.data[a])
             }
             filterResponse.value = trackerIDMem
-            addSnackbar(`Number of results: ${trackerIDMem.size}`, snackbarTypes.INFO)
 
         })
         .catch((err) => {
-            addSnackbar(`An error occurred: ${err}`, snackbarTypes.INFO)
+            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
         }).finally(() => {
             querySent.value = false
         })
