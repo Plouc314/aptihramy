@@ -18,7 +18,24 @@ export interface Root {
     message: string
 }
 
-export interface TrackerInformation {
+export interface TrackerRecordDiagnostics {
+    record_idx: number,
+    record_score: number,
+    distances: (number | null)[];
+}
 
+export interface TrackerFrameDiagnostics {
+    frame_idx: number,
+    records: TrackerRecordDiagnostics[],
+    memory: string[][]
+}
+
+export interface TrackerDiagnostics {
+    id: string,
+    frames: TrackerFrameDiagnostics[]
+}
+
+export interface TrackerInformation {
+    diagnostic: (TrackerDiagnostics | null)
 }
 

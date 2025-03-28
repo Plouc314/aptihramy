@@ -1,6 +1,7 @@
 import polars as pl
 import blitzbeaver as bb
 from blitzbeaver.literals import ID
+from blitzbeaver import TrackerDiagnostics
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW
 import time as time
 
@@ -67,7 +68,10 @@ class Database:
             tracker_feature_mem = {}
             for tracker_id in self._graph.trackers_ids:
                 tracker_diagnostic = self._graph.diagnostics.get_tracker(tracker_id)
-                if tracker_diagnostic is not None and len(tracker_diagnostic.frames) > 0:
+                if (
+                    tracker_diagnostic is not None
+                    and len(tracker_diagnostic.frames) > 0
+                ):
                     last_diagnostic = tracker_diagnostic.frames[-1]
                     tracker_feature_mem[tracker_id] = last_diagnostic.memory[
                         feature_index
@@ -131,6 +135,10 @@ class Database:
                 tracker_feature_mem[tracker_id] = last_diagnostic.memory[feature_index]
 
         return tracker_feature_mem
+
+
+    def get_diagnostics(self, tracker_id: ID) -> TrackerDiagnostics | None:
+        return self._graph.diagnostics.get_tracker(tracker_id)
 
     def get_all_memory_from_last_frame_for_tracker(
         self, tracker_id: ID

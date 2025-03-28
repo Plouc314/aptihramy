@@ -21,5 +21,6 @@ declare module 'vue-router/auto-routes' {
     '/EditPage': RouteRecordInfo<'/EditPage', '/EditPage', Record<never, never>, Record<never, never>>,
     '/HomePage': RouteRecordInfo<'/HomePage', '/HomePage', Record<never, never>, Record<never, never>>,
     '/TrackingChain': RouteRecordInfo<'/TrackingChain', '/TrackingChain', Record<never, never>, Record<never, never>>,
+    '/TrackingChainTest': RouteRecordInfo<'/TrackingChainTest', '/TrackingChainTest', Record<never, never>, Record<never, never>>,
   }
 }

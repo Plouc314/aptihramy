@@ -8,8 +8,14 @@ const DEFAULT_HEADERS = {
     "Content-Type": "application/json",
 };
 
-async function fetchData<T>(endpoint: string, options: RequestInit): Promise<T> {
+async function fetchData<T>(endpoint: string, options: RequestInit, params?: Record<string, string>): Promise<T> {
     const url = new URL(endpoint, BASE_URL);
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+        });
+    }
 
     try {
         const response = await fetch(url, options);
@@ -33,10 +39,6 @@ export async function fetchTrackedFeatures(): Promise<TrackedFeatures> {
     return fetchData<TrackedFeatures>("/features", { method: "GET", headers: DEFAULT_HEADERS });
 }
 
-export async function fetchTrackerInformation(tracker_id_1: number, tracker_id_2: number): Promise<TrackerInformation> {
-    const url = new URL("/tracker");
-    url.searchParams.append("tracker_id_1", tracker_id_1.toString());
-    url.searchParams.append("tracker_id_2", tracker_id_2.toString());
-
-    return fetchData<TrackerInformation>(url.toString(), { method: "GET", headers: DEFAULT_HEADERS });
+export async function fetchTrackerInformation(tracker_id: string): Promise<TrackerInformation> {
+    return fetchData<TrackerInformation>("/tracker", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id });
 }

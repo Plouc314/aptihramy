@@ -6,9 +6,14 @@ from database import Database
 import os
 from database import get_database
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
-import json
-from models import FilterRequest, FilterResponse
-import time
+from models import (
+    FilterRequest,
+    FilterResponse,
+    TrackerDiagnosticsResponse,
+    tracker_diagnostics_to_base_model,
+)
+import ast
+
 app = FastAPI()
 
 
@@ -76,6 +81,8 @@ def get_tracked_features(db: Database = Depends(get_database)):
 
 
 @app.get("/tracker")
-def get_tracker_id_information(tracker_id_1: int, tracker_id_2: int):
-    tracker_id: ID = tuple(tracker_id_1, tracker_id_2)
-    return {"item_id": tracker_id}
+def get_tracker_id_information(tracker_id: str, db: Database = Depends(get_database)):
+    id = ast.literal_eval(tracker_id)
+    if not isinstance(id, tuple):
+        raise HTTPException(status_code=400, detail=f"Invalid tracker id: {tracker_id}")
+    return tracker_diagnostics_to_base_model(db.get_diagnostics(id))

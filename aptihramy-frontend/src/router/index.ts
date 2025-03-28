@@ -1,9 +1,8 @@
 // Composables
-import EditPage from '@/pages/EditPage.vue'
 import HomePage from '../pages/HomePage.vue'
-import TrackingChain from '@/pages/TrackingChain.vue'
+import TrackingChain from '@/pages/TrackingChainTest.vue'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // Correct import for createRouter
-import EditPageTest from '@/pages/EditPage.vue'
+import EditPage from '@/pages/EditPage.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -20,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/edit-page/:trackedPersonIndex',
     name: 'EditPage',
-    component: EditPageTest,
+    component: EditPage,
     props: (route) => ({ trackedPersonIndex: Number(route.params.trackedPersonIndex) }),
   }
 ]

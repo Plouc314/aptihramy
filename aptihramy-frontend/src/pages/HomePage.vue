@@ -32,7 +32,6 @@ import '../styles/button.css';
 import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
-import { fi } from 'vuetify/locale';
 
 
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
