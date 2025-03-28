@@ -35,12 +35,15 @@ import { useSnackbarQueue } from '@/core/snackbarQueue';
 
 
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 const tfStore = trackedFeaturesStore()
 const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
 let id = 1;
 const filters = ref<FilterState[]>([{ id: 1, column: "", rowInput: "" }])
 const filterResponse = ref<TrackerIDMemory>(new Map())
+const querySent = ref(false)
+const feature_values = ref<Set<string>[]>([])
 const querySent = ref(false)
 const feature_values = ref<Set<string>[]>([])
 
@@ -68,6 +71,15 @@ function addFilter(): void {
 
 function removeFilter(filter: FilterState): void {
     filters.value = filters.value.filter(value => value.id !== filter.id)
+    search()
+}
+
+function getSuggestions(column: string): string[] {
+    const index = tfStore.getTrackedFeatureIndex(column)
+    if (index < 0 || feature_values.value.length == 0) {
+        return []
+    }
+    return Array.from(feature_values.value[index])
     search()
 }
 
@@ -116,11 +128,34 @@ watch(filterResponse, (newFilterResponse) => {
     feature_values.value = temp_feature_values
 
 })
+    search()
+}
+
+watch(filterResponse, (newFilterResponse) => {
+    const temp_feature_values = Array.from(
+        { length: tracked_features.value.pretty_features.length },
+        () => new Set<string>()
+    );
+    newFilterResponse.forEach((trackerMemory, _) => {
+        trackerMemory.forEach((featureValues, index) => {
+            if (temp_feature_values.length == trackerMemory.length) {
+                featureValues.forEach(v => temp_feature_values[index].add(v))
+            }
+        })
+    })
+    feature_values.value = temp_feature_values
+
+})
 
 
 function search(): void {
 
     const featureSearchValue = new Map<string, string>();
+
+    if (!filters.value.some(v => v.rowInput.length > 2) || querySent.value) {
+        return
+    }
+
 
     if (!filters.value.some(v => v.rowInput.length > 2) || querySent.value) {
         return
@@ -134,6 +169,7 @@ function search(): void {
 
     const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
     querySent.value = true
+    querySent.value = true
     fetchFilteredTrackers(request)
         .then((response) => {
             const trackerIDMem: TrackerIDMemory = new Map()
@@ -142,8 +178,12 @@ function search(): void {
             }
             filterResponse.value = trackerIDMem
 
+
         })
         .catch((err) => {
+            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
+        }).finally(() => {
+            querySent.value = false
             addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
         }).finally(() => {
             querySent.value = false

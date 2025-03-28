@@ -68,10 +68,7 @@ class Database:
             tracker_feature_mem = {}
             for tracker_id in self._graph.trackers_ids:
                 tracker_diagnostic = self._graph.diagnostics.get_tracker(tracker_id)
-                if (
-                    tracker_diagnostic is not None
-                    and len(tracker_diagnostic.frames) > 0
-                ):
+                if tracker_diagnostic is not None and len(tracker_diagnostic.frames) > 0:
                     last_diagnostic = tracker_diagnostic.frames[-1]
                     tracker_feature_mem[tracker_id] = last_diagnostic.memory[
                         feature_index
