@@ -52,7 +52,7 @@ class Database:
         from the latest diagnostic frame of each tracker.
 
         feature -> trackerId -> [feature values of the last frame for this tracker]
-        
+
         Returns:
             dict[str, dict[ID, list[str]]]: A dictionary where:
                 - Keys are feature names (from schema).
@@ -65,12 +65,9 @@ class Database:
                 continue
 
             tracker_feature_mem = {}
-
-            for (
-                tracker_id,
-                tracker_diagnostic,
-            ) in self._graph.diagnostics.trackers.items():
-                if len(tracker_diagnostic.frames) > 0:
+            for tracker_id in self._graph.trackers_ids:
+                tracker_diagnostic = self._graph.diagnostics.get_tracker(tracker_id)
+                if tracker_diagnostic is not None and len(tracker_diagnostic.frames) > 0:
                     last_diagnostic = tracker_diagnostic.frames[-1]
                     tracker_feature_mem[tracker_id] = last_diagnostic.memory[
                         feature_index
@@ -147,7 +144,7 @@ class Database:
         Returns:
             list[list[str]]: The memory contents from the last frame of the tracker.
         """
-        tracker = self._graph.diagnostics.trackers.get(tracker_id)
+        tracker = self._graph.diagnostics.get_tracker(tracker_id)
         return tracker.frames[-1].memory if tracker else []
 
     def get_all_memory_from_last_frame_for_trackers(

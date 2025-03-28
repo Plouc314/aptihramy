@@ -46,8 +46,8 @@ import { useRoute, useRouter } from 'vue-router';
 import TopBar from '@/components/TopBars/TopBar.vue';
 import { TrackinChainProps } from "../types/types"
 import { Network, DataSet, Edge, Node, Options, Data } from 'vis-network';
-import '../styles/theme.css'
-import '../styles/button.css'
+import '../styles/theme.css';
+import '../styles/button.css';
 
 
 const props = defineProps<TrackinChainProps>()

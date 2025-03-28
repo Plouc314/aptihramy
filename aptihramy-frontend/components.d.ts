@@ -20,6 +20,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ShowImage: typeof import('./src/components/ShowImage.vue')['default']
+    Snackbar: typeof import('./src/components/Snackbar.vue')['default']
     Test: typeof import('./src/components/CrashTest2.vue')['default']
     TopBar: typeof import('./src/components/TopBars/TopBar.vue')['default']
     TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']

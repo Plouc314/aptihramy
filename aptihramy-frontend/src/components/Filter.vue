@@ -3,7 +3,9 @@
         <v-autocomplete v-model="selectedColumn" :items="props.remainingColumns" label="Select filter" clearable
             class="filter-select"></v-autocomplete>
 
-        <v-text-field label="Search..." v-model="rowInput" class="filter-select"></v-text-field>
+        <v-combobox v-model="rowInput" :items="props.suggestions" label="Search..." clearable
+            class="filter-select"></v-combobox>
+
         <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg" @click="deleteFilter">
             Delete filter
         </v-btn>
@@ -24,7 +26,7 @@ const tfStore = trackedFeaturesStore()
 const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
 const emit = defineEmits<{
-    (event: 'edit-filters', payload: FilterState): void;
+    (event: 'edit-filter', payload: FilterState): void;
     (event: 'delete-filter', payload: FilterState): void;
 }>();
 
@@ -36,12 +38,12 @@ const rowInput = ref<string>("")
 watch(selectedColumn, () => {
     rowInput.value = "";
     const a: FilterState = { id: props.id, column: selectedColumn.value, rowInput: "" }
-    emit('edit-filters', a);
+    emit('edit-filter', a);
 });
 
 watch(rowInput, (input) => {
     const a: FilterState = { id: props.id, column: selectedColumn.value, rowInput: input }
-    emit('edit-filters', a);
+    emit('edit-filter', a);
 });
 
 function deleteFilter() {

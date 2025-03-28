@@ -5,7 +5,7 @@ COLUMN_PRETTY_TO_RAW = {
     "Nom du chef de famille": "chef_nom_norm",
     "Nom de l'épouse": "epouse_nom",
     "Prénoms des enfants chez leurs parents": "enfants_chez_parents_prenom",
-    "Origin du chef de famille": "chef_origine",
+    "Origine du chef de famille": "chef_origine",
     "Vocation du chef de famille": "chef_vocation",
     "Page": "Page",
     "Première occurence": "annee",

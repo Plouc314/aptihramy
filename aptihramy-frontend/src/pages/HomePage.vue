@@ -1,30 +1,29 @@
 <template>
     <v-col>
-        <v-btn @click="fetchRoot"></v-btn>
         <v-card class="header-card">
             <v-row v-for="filter in filters" :key="filter.id" class="filter">
                 <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-columns="remainingColumns"
-                    @delete-filter="removeFilter" @edit-filters="editFilter">
+                    :suggestions="getSuggestions(filter.column)" @delete-filter="removeFilter"
+                    @edit-filter="editFilter">
                 </Filter>
             </v-row>
             <v-row justify="space-between">
                 <v-btn class="ok-btn" prepend-icon="mdi-plus" rounded="lg" @click="addFilter">Add
                     Filter</v-btn>
-                <v-btn class="ok-btn" prepend-icon="mdi-magnify" rounded="lg" @click="search">Search</v-btn>
             </v-row>
 
         </v-card>
+        <v-progress-circular v-if="querySent" indeterminate :size="80" :width="10"
+            class="loading-spinner"></v-progress-circular>
+        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
-        <display-people :data="filterResponse" :is-loading="false"></display-people>
     </v-col>
 
 </template>
 
 <script setup lang="ts">
-import { COLUMNS_PRETTY } from '@/config/constants';
 import DisplayPeople from '@/components/DisplayPeople.vue';
-import { fetchRoot } from '@/core/api';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
 import { FilterRequest, } from '@/types/api_types';
@@ -32,14 +31,19 @@ import '../styles/theme.css';
 import '../styles/button.css';
 import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
+import { useSnackbarQueue } from '@/core/snackbarQueue';
+import { fi } from 'vuetify/locale';
 
 
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 const tfStore = trackedFeaturesStore()
 const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
 let id = 1;
 const filters = ref<FilterState[]>([{ id: 1, column: "", rowInput: "" }])
 const filterResponse = ref<TrackerIDMemory>(new Map())
+const querySent = ref(false)
+const feature_values = ref<Set<string>[]>([])
 
 const remainingColumns = computed<string[]>(() => {
     if (!tracked_features.value) {
@@ -65,6 +69,15 @@ function addFilter(): void {
 
 function removeFilter(filter: FilterState): void {
     filters.value = filters.value.filter(value => value.id !== filter.id)
+    search()
+}
+
+function getSuggestions(column: string): string[] {
+    const index = tfStore.getTrackedFeatureIndex(column)
+    if (index < 0 || feature_values.value.length == 0) {
+        return []
+    }
+    return Array.from(feature_values.value[index])
 }
 
 function findIndexValue(id: number): [number, FilterState] {
@@ -86,20 +99,42 @@ function editFilter(value: FilterState): void {
         currentValue.rowInput = value.rowInput
         filters.value[index] = currentValue
     }
+    search()
 }
+
+watch(filterResponse, (newFilterResponse) => {
+    const temp_feature_values = Array.from(
+        { length: tracked_features.value.pretty_features.length },
+        () => new Set<string>()
+    );
+    newFilterResponse.forEach((trackerMemory, _) => {
+        trackerMemory.forEach((featureValues, index) => {
+            if (temp_feature_values.length == trackerMemory.length) {
+                featureValues.forEach(v => temp_feature_values[index].add(v))
+            }
+        })
+    })
+    feature_values.value = temp_feature_values
+
+})
 
 
 function search(): void {
 
     const featureSearchValue = new Map<string, string>();
+
+    if (!filters.value.some(v => v.rowInput.length > 2) || querySent.value) {
+        return
+    }
+
     for (const filter of filters.value) {
         if (tracked_features.value.pretty_features.includes(filter.column)) {
             featureSearchValue.set(filter.column, filter.rowInput)
-
         }
     }
 
     const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
+    querySent.value = true
     fetchFilteredTrackers(request)
         .then((response) => {
             const trackerIDMem: TrackerIDMemory = new Map()
@@ -107,9 +142,12 @@ function search(): void {
                 trackerIDMem.set(a, response.data[a])
             }
             filterResponse.value = trackerIDMem
+
         })
         .catch((err) => {
-            console.error(err);
+            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
+        }).finally(() => {
+            querySent.value = false
         })
 }
 
@@ -146,5 +184,12 @@ function search(): void {
 
 .filter-select .v-select__selection {
     color: "text-primary";
+}
+
+.loading-spinner {
+    position: fixed;
+    /* Ensures it stays in the middle of the viewport */
+    top: 50%;
+    left: 50%;
 }
 </style>
