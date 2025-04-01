@@ -1,4 +1,4 @@
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation } from "../types/api_types"
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, TrackingChain } from "../types/api_types"
 import { useSnackbarQueue } from "./snackbarQueue";
 // Create an Axios instance
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
@@ -41,4 +41,16 @@ export async function fetchTrackedFeatures(): Promise<TrackedFeatures> {
 
 export async function fetchTrackerInformation(tracker_id: string): Promise<TrackerInformation> {
     return fetchData<TrackerInformation>("/tracker", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id });
+}
+
+export async function fetchTrackingChain(tracker_id: string): Promise<TrackingChain> {
+    return fetchData<TrackingChain>("/tracking_chain", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id });
+}
+
+export async function fetchRecordValues(frame_idx: number, record_idx: number): Promise<RecordValuesTrackedFeatures> {
+    return fetchData<RecordValuesTrackedFeatures>("/record", { method: "GET", headers: DEFAULT_HEADERS }, { "frame_idx": frame_idx.toString(), "record_idx": record_idx.toString() });
+}
+
+export async function fetchTrackedYears(): Promise<TrackedYears> {
+    return fetchData<TrackedYears>("tracked_years", { method: "GET", headers: DEFAULT_HEADERS })
 }

@@ -35,27 +35,24 @@ import { useSnackbarQueue } from '@/core/snackbarQueue';
 
 
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 const tfStore = trackedFeaturesStore()
-const tracked_features = computed(() => tfStore.getTrackedFeatures)
+const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
 
 let id = 1;
 const filters = ref<FilterState[]>([{ id: 1, column: "", rowInput: "" }])
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
-const feature_values = ref<Set<string>[]>([])
-const querySent = ref(false)
-const feature_values = ref<Set<string>[]>([])
+const featureValues = ref<Set<string>[]>([])
 
 const remainingColumns = computed<string[]>(() => {
-    if (!tracked_features.value) {
+    if (!trackedFeatures.value) {
         return [] as string[]
     }
 
     const usedColumns: string[] = filters.value.map(value => value.column).filter(v => v !== "")
     const ret: string[] = []
-    for (let i = 0; i < tracked_features.value.pretty_features.length; i++) {
-        const prettyFeature = tracked_features.value.pretty_features[i]
+    for (let i = 0; i < trackedFeatures.value.pretty_features.length; i++) {
+        const prettyFeature = trackedFeatures.value.pretty_features[i]
         if (!usedColumns.includes(prettyFeature)) {
             ret.push(prettyFeature)
         }
@@ -76,19 +73,10 @@ function removeFilter(filter: FilterState): void {
 
 function getSuggestions(column: string): string[] {
     const index = tfStore.getTrackedFeatureIndex(column)
-    if (index < 0 || feature_values.value.length == 0) {
+    if (index < 0 || featureValues.value.length == 0) {
         return []
     }
-    return Array.from(feature_values.value[index])
-    search()
-}
-
-function getSuggestions(column: string): string[] {
-    const index = tfStore.getTrackedFeatureIndex(column)
-    if (index < 0 || feature_values.value.length == 0) {
-        return []
-    }
-    return Array.from(feature_values.value[index])
+    return Array.from(featureValues.value[index])
 }
 
 function findIndexValue(id: number): [number, FilterState] {
@@ -114,36 +102,18 @@ function editFilter(value: FilterState): void {
 }
 
 watch(filterResponse, (newFilterResponse) => {
-    const temp_feature_values = Array.from(
-        { length: tracked_features.value.pretty_features.length },
+    const temp_featureValues = Array.from(
+        { length: trackedFeatures.value.pretty_features.length },
         () => new Set<string>()
     );
     newFilterResponse.forEach((trackerMemory, _) => {
         trackerMemory.forEach((featureValues, index) => {
-            if (temp_feature_values.length == trackerMemory.length) {
-                featureValues.forEach(v => temp_feature_values[index].add(v))
+            if (temp_featureValues.length == trackerMemory.length) {
+                featureValues.forEach(v => temp_featureValues[index].add(v))
             }
         })
     })
-    feature_values.value = temp_feature_values
-
-})
-    search()
-}
-
-watch(filterResponse, (newFilterResponse) => {
-    const temp_feature_values = Array.from(
-        { length: tracked_features.value.pretty_features.length },
-        () => new Set<string>()
-    );
-    newFilterResponse.forEach((trackerMemory, _) => {
-        trackerMemory.forEach((featureValues, index) => {
-            if (temp_feature_values.length == trackerMemory.length) {
-                featureValues.forEach(v => temp_feature_values[index].add(v))
-            }
-        })
-    })
-    feature_values.value = temp_feature_values
+    featureValues.value = temp_featureValues
 
 })
 
@@ -156,19 +126,13 @@ function search(): void {
         return
     }
 
-
-    if (!filters.value.some(v => v.rowInput.length > 2) || querySent.value) {
-        return
-    }
-
     for (const filter of filters.value) {
-        if (tracked_features.value.pretty_features.includes(filter.column)) {
+        if (trackedFeatures.value.pretty_features.includes(filter.column)) {
             featureSearchValue.set(filter.column, filter.rowInput)
         }
     }
 
     const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
-    querySent.value = true
     querySent.value = true
     fetchFilteredTrackers(request)
         .then((response) => {
@@ -178,12 +142,8 @@ function search(): void {
             }
             filterResponse.value = trackerIDMem
 
-
         })
         .catch((err) => {
-            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
-        }).finally(() => {
-            querySent.value = false
             addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
         }).finally(() => {
             querySent.value = false

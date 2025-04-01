@@ -54,7 +54,7 @@ const props = defineProps<TrackinChainProps>()
 
 const router = useRouter();
 const route = useRoute();
-const network = ref(null);
+const network = ref<Network>(null);
 const container = ref(null);
 
 const selectedNodeId = ref(null)

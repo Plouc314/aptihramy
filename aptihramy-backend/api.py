@@ -9,11 +9,14 @@ from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
 from models import (
     FilterRequest,
     FilterResponse,
-    TrackerDiagnosticsResponse,
+    RecordModel,
+    TrackedYearsModel,
     tracker_diagnostics_to_base_model,
+    tracking_chain_to_base_model
 )
 import ast
 import time
+
 app = FastAPI()
 
 
@@ -86,3 +89,35 @@ def get_tracker_id_information(tracker_id: str, db: Database = Depends(get_datab
     if not isinstance(id, tuple):
         raise HTTPException(status_code=400, detail=f"Invalid tracker id: {tracker_id}")
     return tracker_diagnostics_to_base_model(db.get_diagnostics(id))
+
+
+@app.get("/tracking_chain")
+def get_tracking_chain(tracker_id: str, db: Database = Depends(get_database)):
+    id = ast.literal_eval(tracker_id)
+    if not isinstance(id, tuple):
+        raise HTTPException(status_code=400, detail=f"Invalid tracker id: {tracker_id}")
+
+    return tracking_chain_to_base_model(db.get_tracking_chain(id))
+
+
+@app.get("/record")
+def get_record_values(
+    frame_idx: str, record_idx: str, db: Database = Depends(get_database)
+):
+    try:
+        raw_tracked_features, _ = db.get_tracked_features()
+        print(
+            db.get_record(int(frame_idx), int(record_idx)).select(raw_tracked_features)
+        )
+        df = db.get_record(int(frame_idx), int(record_idx)).select(raw_tracked_features)
+        return {"records": df.to_dict(as_series=False)}
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid frame index: {frame_idx} or record index: {record_idx}",
+        )
+
+
+@app.get("/tracked_years")
+def get_tracked_years(db: Database = Depends(get_database)):
+    return TrackedYearsModel(tracked_years=db.get_tracked_years())

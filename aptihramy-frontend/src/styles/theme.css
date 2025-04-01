@@ -7,7 +7,8 @@
     --background: #F9FAFC;
     --background-alt: #e0e0e0f3;
     --table-hover: #a8a8a8;
-    --table-alt:#e6e6e6;;
+    --table-alt: #e6e6e6;
+    ;
     --surface: #FFFFFF;
 
     --text-primary: #212121;
@@ -20,8 +21,12 @@
     --error: #D32F2F;
     --accent-error: #ce5353;
 
-
     --box-shadow: rgba(0, 0, 0, 0.1);
+
+    --color-red: #D32F2F;
+    --color-orange: #ffb400;
+    --color-yellow: #e9d739;
+    --color-green: #00A676;
 }
 
 /* Dark Mode Theme */
@@ -43,4 +48,8 @@
     --success: #00C48C;
     --warning: #FFCC00;
     --error: #FF4C4C;
+}
+
+.dynamic-color {
+    color: var(--dynamic-color);
 }

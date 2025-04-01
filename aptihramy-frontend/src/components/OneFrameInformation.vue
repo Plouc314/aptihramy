@@ -16,8 +16,9 @@
         <div class="content">
             <v-card-item>
                 <v-row>
-                    <v-col v-for="(value, col) in frameInformation" :key="col" :cols="12 / props.nbColumns" class="data-col">
-                        <span class="data-title">{{ COLUMN_RAW_TO_PRETTY.get(col) }}</span>
+                    <v-col v-for="([prettyFeature, value], index) in frameInformation" :key="index"
+                        :cols="12 / props.nbColumns" class="data-col">
+                        <span class="data-title">{{ prettyFeature }}</span>
                         <span class="data-value">{{ value }}</span>
                     </v-col>
                 </v-row>
@@ -28,21 +29,85 @@
 
 <script setup lang="ts">
 import { TEST_DATA } from '@/config/test_data';
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { COLUMN_RAW_TO_PRETTY } from '@/config/constants';
 import { OneFrameInformationProps } from '../types/types';
 import '../styles/theme.css';
 import '../styles/button.css';
+import { fetchRecordValues } from '@/core/api';
+import { useSnackbarQueue } from '@/core/snackbarQueue';
+import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
+
 
 const props = defineProps<OneFrameInformationProps>();
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
-const frameInformation = computed(() => TEST_DATA[props.trackedPersonIndex][props.frameIndex]);
-const title = computed(() => `${frameInformation.value.chef_prenom} ${frameInformation.value.chef_nom}`);
+const error = ref(false)
+const records = ref<Map<string, (string | number)[]>>(null)
+const tfStore = trackedFeaturesStore()
+
+const title = computed(() => {
+    if (records.value == null) {
+        return ""
+    }
+    console.log(records.value)
+    if (tfStore.getTrackedFeatures.raw_features.includes("chef_prenom_norm") && tfStore.getTrackedFeatures.raw_features.includes("chef_nom_norm")) {
+        return `${records.value["chef_prenom_norm"]} ${records.value["chef_nom_norm"]}`
+    }
+    return ""
+})
 
 function showPage() {
     console.log("TO BE IMPLEMENTED")
 }
 
+watch(() => [props.frameIdx, props.recordIdx], ([frameIndex, recordIndex]) => {
+
+    fetchRecordValues(frameIndex, recordIndex).then(data => {
+        if (data.records) {
+            console.log(data.records)
+            records.value = data.records
+        } else {
+            addSnackbar("Person not found", snackbarTypes.ERROR)
+            error.value = true
+        }
+    }
+    )
+})
+
+
+const frameInformation = computed(() => {
+    const a = new Map<string, string | number>()
+    if (!records.value) {
+        return a
+    }
+    for (const rawFeature in records.value) {
+        const values = records.value[rawFeature]
+        if (values.length > 0) {
+            a.set(tfStore.getPrettyFromRaw(rawFeature), values[0])
+        } else {
+            a.set(tfStore.getPrettyFromRaw(rawFeature), "")
+        }
+    }
+    return a
+
+})
+
+onMounted(() => {
+    const frameIndex = props.frameIdx
+    const recordIndex = props.recordIdx
+    fetchRecordValues(frameIndex, recordIndex).then(data => {
+        if (data.records) {
+            console.log(data.records)
+            records.value = data.records
+        } else {
+            addSnackbar("Person not found", snackbarTypes.ERROR)
+            error.value = true
+        }
+    }
+    )
+
+})
 </script>
 
 

@@ -1,0 +1,30 @@
+@import url("./theme.css");
+
+
+.error-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--error);
+    /* Custom red color */
+    color: var(--surface);
+    padding: 16px;
+    border-radius: 8px;
+    width: 250px;
+    text-align: center;
+}
+
+.error-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.error-icon {
+    font-size: 28px;
+}
+
+.error-text {
+    font-weight: bold;
+    font-size: 18px;
+}

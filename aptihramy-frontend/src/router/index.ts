@@ -17,10 +17,10 @@ const routes: RouteRecordRaw[] = [
     props: true
   },
   {
-    path: '/edit-page/:trackedPersonIndex',
+    path: '/edit-page/:trackerID',
     name: 'EditPage',
     component: EditPage,
-    props: (route) => ({ trackedPersonIndex: Number(route.params.trackedPersonIndex) }),
+    props: true,
   }
 ]
 

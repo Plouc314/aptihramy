@@ -1,0 +1,10 @@
+:root {
+    --color-red: red;
+    --color-orange: orange;
+    --color-yellow: yellow;
+    --color-green: green;
+}
+
+.dynamic-color {
+    color: var(--dynamic-color);
+}

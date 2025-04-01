@@ -26,8 +26,8 @@ export interface DisplayPeopleProps {
 }
 
 export interface OneFrameInformationProps {
-    trackedPersonIndex: number;
-    frameIndex: number;
+    frameIdx: number;
+    recordIdx: number;
     nbColumns: number;
 }
 
@@ -45,11 +45,11 @@ export interface FilterProps {
 }
 
 export interface TrackinChainProps {
-    trackedID: trackerID
+    trackerID: trackerID
 }
 
 export interface EditPageProps {
-    trackedPersonIndex: number
+    trackerID: trackerID
 }
 
 export interface EditMetricsProps {
@@ -62,3 +62,5 @@ export interface Snackbar {
     message: string,
     type: string
 }
+
+export type NodePosition = { x: number, y: number }

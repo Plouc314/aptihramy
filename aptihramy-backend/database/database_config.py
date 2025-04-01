@@ -7,6 +7,7 @@ import time as time
 
 CSV_PATH = "../../aptihramy/data/csv_cleaned"
 PATH_GRAPH = "./beaver_files/graph.beaver"
+YEARS = [1805, 1806, 1807, 1808, 1809, 1810]
 START_YEAR = 1805
 END_YEAR = 1810
 RECORD_SCHEMA = bb.RecordSchema(
@@ -24,9 +25,9 @@ db_instance = Database(
     record_schema=RECORD_SCHEMA,
     path_graph=PATH_GRAPH,
     csv_path=CSV_PATH,
-    start_year=START_YEAR,
-    end_year=END_YEAR,
+    tracked_years=YEARS,
 )
+
 
 def get_database() -> Database:
     return db_instance
