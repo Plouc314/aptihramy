@@ -1,74 +1,119 @@
 <template>
-    <TopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title="title"></TopBar>
-    <!-- Graph Row -->
-    <v-row>
-        <v-col cols="12" id="mynetwork"></v-col>
-    </v-row>
+    <TopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title=""></TopBar>
 
+    <v-col v-if="trackerDiagnostics && trackingChain">
+        <!-- Navigation Buttons -->
+        <v-row justify="center" align="center">
+            <v-col cols="auto">
+                <v-tooltip location="start">
+                    <template v-slot:activator="{ props }">
+                        <v-btn icon color="primary" @click="changeNode(-1, 0)" large v-bind="props">
+                            <v-icon>mdi-chevron-left</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Move left</span>
+                </v-tooltip>
+            </v-col>
+
+            <!-- Up/Down Buttons Stacked -->
+            <v-col cols="auto" class="d-flex flex-column align-center">
+                <v-tooltip location="top">
+                    <template v-slot:activator="{ props }">
+                        <v-btn icon color="primary" @click="changeNode(0, -1)" large v-bind="props">
+                            <v-icon>mdi-chevron-up</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Move Up</span>
+                </v-tooltip>
+                <v-divider thickness="20"></v-divider>
+                <v-tooltip location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn icon color="primary" @click="changeNode(0, 1)" large v-bind="props">
+                            <v-icon>mdi-chevron-down</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Move Down</span>
+                </v-tooltip>
+            </v-col>
+
+            <v-col cols="auto">
+                <v-tooltip location="end">
+                    <template v-slot:activator="{ props }">
+                        <v-btn icon color="primary" @click="changeNode(1, 0)" large v-bind="props">
+                            <v-icon>mdi-chevron-right</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Move right</span>
+                </v-tooltip>
+            </v-col>
+        </v-row>
+
+        <!-- Graph Row -->
+        <v-row>
+            <v-col cols="12" id="network"></v-col>
+        </v-row>
+
+        <v-row>
+            <v-col v-if="selectedNodeIndex !== null" cols="12">
+                <OneFrameInformation :frame-diag="filteredTrackerDiagnosticsFrames[selectedNodeIndex.x]"
+                    :record-idx="filteredTrackerDiagnosticsFrames[selectedNodeIndex.x].records[selectedNodeIndex.y].record_idx"
+                    :nb-columns="2" />
+            </v-col>
+        </v-row>
+
+    </v-col>
+
+    <v-progress-circular v-if="!trackerDiagnostics && !error" indeterminate :size="80" :width="10"
+        class="loading-spinner"></v-progress-circular>
+    <div v-if="error" class="error-container">
+        <v-card class="error-card">
+            <v-card-text class="error-content">
+                <v-icon class="error-icon">mdi-alert-circle</v-icon>
+                <span class="error-text">Person not found</span>
+            </v-card-text>
+        </v-card>
+    </div>
 </template>
 
 <script setup lang="ts">
 
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
-import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { useRoute, useRouter } from 'vue-router';
+import { computed, ref, onMounted, watch, nextTick } from "vue";
 import TopBar from '@/components/TopBars/TopBar.vue';
-import { TrackinChainProps } from "../types/types"
-import { Network, DataSet, Edge, Node, Options, Data, IdType } from 'vis-network';
+import { NodePosition, TrackinChainProps } from "../types/types"
+import { Network, Edge, Node, IdType } from 'vis-network';
 import '../styles/theme.css';
 import '../styles/button.css';
 import '../styles/error_card.css';
 
-import { fetchRecordValues, fetchTrackedYears, fetchTrackerInformation } from "@/core/api";
-import { TrackerDiagnostics } from "@/types/api_types";
+import { fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
+import { ChainNode, TrackerDiagnostics, TrackerFrameDiagnostics } from "@/types/api_types";
 import { useSnackbarQueue } from '@/core/snackbarQueue';
+import { trackedYearsStore } from '../core/stores/trackedYears';
+import { getColor } from '@/core/utils';
 
-const trackerDiagnostics = ref<TrackerDiagnostics>(null);
-const route = useRoute();
+const ANGLE = 60
+const OFFSET_X = 150
+
+const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
+const tyStore = trackedYearsStore()
+
 const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
-const trackedYears = ref<number[]>()
-const selectedNodeId = ref(null)
+const trackingChain = ref<ChainNode[] | null>(null)
+
+const route = useRoute();
+const router = useRouter();
+
+const selectedNodeID = ref<string | null>(null)
+
 const error = ref(false)
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
-
+const nodes = ref<Node[]>(null)
+const edges = ref<Edge[]>(null)
 
 const props = defineProps<TrackinChainProps>();
-
-const oui = [1, 2, 4, 5]
-
-const nodes = ref(oui.map((year, index) => ({
-    id: index,
-    label: `${year}`,
-    shape: "box",
-    color: "#0056B3",
-    font: {
-        size: 24,
-        color: "#ffffff",
-        bold: "true"
-    },
-    x: index * 150,
-    y: getRandomInt(-20, 20),
-    fixed: { x: true, y: true }
-})))
-
-
-const edges = ref(oui.slice(0, -1).map((_, i) => ({
-    from: i,
-    to: i + 1,
-    color: panelColor(0),
-    width: 2,
-    label: `${i}`,
-    font: {
-        size: 14, // Adjust size for readability
-        color: "#007bff",
-        align: "top",
-        bold: "true"
-    },
-    arrows: "to",
-})))
-
-
 const options = ref({
     //autoResize: true,
     interaction: {
@@ -93,39 +138,172 @@ const options = ref({
     },
 });
 
-const graph_data = computed<Data>(() => ({
-    nodes: nodes.value,
-    edges: edges.value,
-}));
+const selectedNodeIndex = computed(() => {
+    if (selectedNodeID.value == null) {
+        return null
+    }
+    return decodeId(selectedNodeID.value)
+})
+
+const filteredTrackerDiagnosticsFrames = computed<TrackerFrameDiagnostics[]>(() => {
+    if (!trackerDiagnostics.value || !trackingChain.value) {
+        return []
+    }
+
+    const ret: TrackerFrameDiagnostics[] = []
+    const firstFrame = trackingChain.value[0]
+
+    ret.push({
+        frame_idx: firstFrame.frame_idx,
+        records: [{ record_idx: firstFrame.record_idx, record_score: 0, distances: null }],
+        memory: []
+    })
+
+    const filter = trackerDiagnostics.value.frames.filter(frame => frame.records.length > 0).map(frame => {
+        return {
+            frame_idx: frame.frame_idx,
+            memory: frame.memory,
+            records: frame.records.sort((a, b) => b.record_score - a.record_score)
+        }
+    })
+
+    ret.push(...filter)
+    return ret
+})
+
+
+
+function encodeId(x: number, y: number): string {
+    return `${x},${y}`;
+}
+
+function decodeId(id: string): NodePosition {
+    const [x, y] = id.split(',').map(Number);
+    return { x, y };
+}
+
+function setupEdges(trackingChain: ChainNode[], filteredFrames: TrackerFrameDiagnostics[]) {
+
+
+    const newEdges: Edge[] = []
+    for (let i = 0; i < trackingChain.length - 1; i++) {
+
+        const nextNode = trackingChain[i + 1]
+        const frameIdx = filteredFrames.findIndex(f => f.frame_idx == nextNode.frame_idx)
+        const recordIdx = filteredFrames[frameIdx].records.findIndex(f => f.record_idx == nextNode.record_idx)
+        const record = filteredFrames[frameIdx].records[recordIdx]
+
+        const e = {
+            from: encodeId(i, 0),
+            to: encodeId(i + 1, 0),
+            color: getColor(record.record_score),
+            width: 2,
+            label: `${Math.round(record.record_score * 100)}%`,
+            font: {
+                size: 14, // Adjust size for readability
+                color: "#007bff",
+                align: "top",
+                bold: "true",
+            },
+            arrows: "to",
+        }
+        newEdges.push(e)
+    }
+    edges.value = newEdges
+}
+
+function buildNode(id: string, year: number, positionX: number, positionY: number): Node {
+    return {
+        id: id,
+        label: `${year}`,
+        shape: "box",
+        color: "#0056B3",
+        font: {
+            size: 24,
+            color: "#ffffff",
+            bold: "true"
+        },
+        x: positionX,
+        y: positionY,
+        fixed: { x: true, y: true }
+    }
+}
+
+function setupNodes(filteredFrames: TrackerFrameDiagnostics[]) {
+    const newNodes: Node[] = []
+    let centerX = 0
+
+    for (let i = 0; i < filteredFrames.length; i++) {
+        const frame = filteredFrames[i]
+        const year = tyStore.getYearFromFrameIdx(frame.frame_idx)
+
+        const positions = getNodePositions(centerX - OFFSET_X, ANGLE, OFFSET_X, frame.records.length)
+        centerX += OFFSET_X
+
+        for (let r = 0; r < frame.records.length; r++) {
+            if (r == 0) {
+                newNodes.push(buildNode(encodeId(i, 0), year, i * OFFSET_X, 0))
+            } else {
+                newNodes.push(buildNode(encodeId(i, r), year, positions[r - 1].x, positions[r - 1].y))
+            }
+        }
+    }
+
+    nodes.value = newNodes
+}
+
+function getNodePositions(centerX: number, angleRange: number, radius: number, numNodes: number): NodePosition[] {
+    if (numNodes == 1) {
+        return [{ x: centerX + radius, y: 0 }]
+    }
+
+    let positions = [];
+    let angleStep = angleRange / (numNodes - 1);
+
+    let a = angleStep
+    for (let i = 0; i < Math.round(numNodes / 2); i++) {
+        let angle = a * (Math.PI / 180); // Convert to radians
+        let xPos = centerX + radius;
+        let yPos = radius * Math.sin(angle);
+        positions.push({ x: xPos, y: yPos });
+        positions.push({ x: xPos, y: -yPos });
+        a += angleStep
+
+    }
+
+    return positions.slice(0, numNodes);
+}
+
 
 function setupNetwork() {
-    container.value = document.getElementById("mynetwork");
-
+    container.value = document.getElementById("network");
     if (!container.value) {
         return
     }
-
-    console.log("oui")
     network.value = new Network(
         container.value,
-        graph_data.value,
+        {
+            nodes: nodes.value,
+            edges: edges.value,
+        },
         options.value
     );
     network.value.fit();
     // Click event to zoom in on a node
     network.value.on("click", function (params) {
         if (params.nodes.length > 0) {
-            selectedNodeId.value = params.nodes[0];
-            zoomTo(selectedNodeId.value)
+            selectedNodeID.value = params.nodes[0];
+            console.log(params.nodes[0])
+            zoomTo(selectedNodeID.value)
         } else if (params.edges.length > 0) {
-            alert(`You clicked on Edge ${params.edges[0]}`);
+            console.log(params)
+            alert(`You clicked on Edge ${params}`);
         }
     });
 
     // Hover event
     network.value.on("hoverNode", function (params) {
         const nodeId = params.node;
-        console.log(trackedYears[nodeId]);
     });
 
     network.value.on("hoverEdge", function (params) {
@@ -138,51 +316,45 @@ function setupNetwork() {
 
 }
 
-function test() {
-    fetchRecordValues(1, 1).then(v =>
-        console.log(v.records)
-    ).catch(err => addSnackbar(`Error fetching the person ${err}`, snackbarTypes.ERROR))
+watch([trackingChain, filteredTrackerDiagnosticsFrames], ([newTrackingChain, newFilteredFrames]) => {
+    const cond1 = newTrackingChain != null && newTrackingChain.length > 0
+    const cond2 = newFilteredFrames != null && newFilteredFrames.length > 0
+    if (!(cond1 && cond2)) {
+        return
+    }
+    
+    setupNodes(newFilteredFrames)
+    setupEdges(newTrackingChain, newFilteredFrames)
+    nextTick(() => setupNetwork())
+})
+
+
+
+function changeNode(offsetX: number, offsetY: number) {
+
+    if (selectedNodeID.value == null) {
+        selectedNodeID.value = encodeId(0, 0)
+    } else {
+        const decoded = decodeId(selectedNodeID.value)
+        const records = filteredTrackerDiagnosticsFrames.value[decoded.x].records
+        const x = (decoded.x + offsetX + filteredTrackerDiagnosticsFrames.value.length) % filteredTrackerDiagnosticsFrames.value.length
+        const y = offsetX == 0 ? (decoded.y + offsetY + records.length) % records.length : 0
+        selectedNodeID.value = encodeId(x, y)
+    }
+    zoomTo(selectedNodeID.value)
 }
 
-
-function panelColor(value) {
-    // Convert percentage (0 to 100) to a color scale (green → red)
-    const red = Math.min(255, Math.floor((1 - value) * 255));
-    const green = Math.min(255, Math.floor((value) * 255));
-
-    return `rgb(${red}, ${green}, 110)`;
-};
-
-
-
-function getRandomInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min) + min);
-}
-
-function changeNode(offset: number) {
-    if (!trackedYears.value) return
-    selectedNodeId.value = selectedNodeId.value === null ? 0 : (selectedNodeId.value + offset + trackedYears.value.length) % trackedYears.value.length
-    zoomTo(selectedNodeId.value)
-}
-
-function nextNode() {
-    changeNode(+1)
-}
-
-function previousNode() {
-    changeNode(-1)
-}
 
 function goToEditPage() {
-    // router.push({
-    //     name: 'EditPage', params: { trackedPersonIndex: props.trackedPersonIndex.valueOf() }
-    // });
+    router.push({
+        name: 'EditPage', params: { trackerID: props.trackerID }
+    });
 }
 
 function zoomTo(nodeId: IdType) {
     nextTick(() => {
         network.value?.focus(nodeId, {
-            scale: 5, // Zoom in
+            scale: 3.5, // Zoom in
             animation: { duration: 1000, easingFunction: "easeInOutQuad" },
         });
     });
@@ -195,23 +367,61 @@ function resetZoom() {
             animation: { duration: 500, easingFunction: "easeInOutQuad" },
         });
     })
-    selectedNodeId.value = null
+    selectedNodeID.value = null
 
 };
 
 
-
 onMounted(() => {
     const param = props.trackerID
-    setupNetwork()
+    fetchTrackerInformation(param)
+        .then(data => {
+            if (data.diagnostic) {
+                trackerDiagnostics.value = data.diagnostic
+            } else {
+                addSnackbar("Person not found", snackbarTypes.ERROR)
+                error.value = true
+            }
+        }
+        ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+
+    fetchTrackingChain(param)
+        .then(data => {
+            if (data.tracking_chain) {
+                trackingChain.value = data.tracking_chain
+            } else {
+                addSnackbar("Chain not found", snackbarTypes.ERROR)
+                error.value = true
+            }
+        }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
 
 })
 </script>
 
-<style scoped>
-#mynetwork {
+<style lang="scss" scoped>
+#network {
     height: 50vh;
 }
+
+
+.navigation-buttons {
+    align-items: center;
+    /* Increased space between buttons */
+    margin-top: 20px;
+}
+
+.navigation-buttons span {
+    font-size: 16px;
+    font-weight: bold;
+    /* Same color as the button icons */
+    margin-top: 5px;
+    /* Adjusts the spacing between icon and text */
+}
+
+.card-title {
+    color: var(--primary)
+}
+
 
 .error-container {
     display: flex;
@@ -228,25 +438,5 @@ onMounted(() => {
     /* Ensures it stays in the middle of the viewport */
     top: 50%;
     left: 50%;
-}
-
-.navigation-buttons {
-    display: flex;
-    align-items: center;
-    gap: 40px;
-    /* Increased space between buttons */
-    margin-top: 20px;
-}
-
-.navigation-buttons span {
-    font-size: 16px;
-    font-weight: bold;
-    /* Same color as the button icons */
-    margin-top: 5px;
-    /* Adjusts the spacing between icon and text */
-}
-
-.card-title {
-    color: var(--primary)
 }
 </style>

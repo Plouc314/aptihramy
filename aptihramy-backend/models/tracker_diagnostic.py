@@ -26,7 +26,7 @@ class TrackerDiagnosticsModel(BaseModel):
 
 
 class TrackerDiagnosticsResponse(BaseModel):
-    diagnostic: Optional[TrackerDiagnosticsModel]
+    diagnostic: TrackerDiagnosticsModel | None
 
 
 def tracker_record_to_base_model(

@@ -1,22 +1,24 @@
 <template>
-    <v-btn @click="oui"></v-btn>
     <v-col>
         <TopBar title="Edit Page"></TopBar>
-        <v-row v-if="trackerDiagnostics && !error">
-            <v-col v-for="(rawCol, index) in COLUMNS_RAW" :key="index" cols="12" md="6">
+        <v-row v-if="mostProbable && featureValues && !error">
+            <v-col v-for="([rawFeature, values], index) in featureValues" :key="index" cols=" 12" md="6">
                 <v-card>
-                    <v-card-title class="title-text">{{ COLUMN_RAW_TO_PRETTY.get(rawCol) }}</v-card-title>
+                    <v-card-title class="title-text">{{ tfStore.getPrettyFromRaw(rawFeature) }}</v-card-title>
                     <v-card-subtitle class="subtitle-text">
+                        {{ mostProbable.get(rawFeature) }}
                     </v-card-subtitle>
 
                     <v-divider :thickness="3" color="info"></v-divider>
 
+                    <!-- Unique v-model for each card using selectedValues object -->
+                    <v-select v-model="selectedValues[rawFeature]" :items="values" label="Select an option"></v-select>
 
                 </v-card>
             </v-col>
         </v-row>
     </v-col>
-    <v-progress-circular v-if="!trackerDiagnostics && !error" indeterminate :size="80" :width="10"
+    <v-progress-circular v-if="!featureValues && !error" indeterminate :size="80" :width="10"
         class="loading-spinner"></v-progress-circular>
 
     <div v-if="error" class="error-container">
@@ -38,28 +40,31 @@ import { useRoute, useRouter } from 'vue-router';
 import TopBar from "@/components/TopBars/TopBar.vue";
 import { EditPageProps } from "../types/types";
 import { fetchRecordValues, fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
-import { ChainNode, TrackerDiagnostics } from "@/types/api_types";
+import { ChainNode, FeatureValues, TrackerDiagnostics } from "@/types/api_types";
 import { useSnackbarQueue } from "@/core/snackbarQueue";
+import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
 
 const props = defineProps<EditPageProps>();
 
 const router = useRouter();
 const route = useRoute();
 const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
-const trackingChain = ref<ChainNode[] | null>(null)
 const error = ref(false)
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
-watch(trackerDiagnostics, newTrackedDiag => {
-    for (let i = 0; i < newTrackedDiag.frames.length; i++) {
+const tfStore = trackedFeaturesStore()
+const selectedValues = ref<Map<string, string | number>>(new Map())
+
+
+watch(tfStore.getTrackedFeatures, trackedFeaturesStore => {
+    if (trackedFeaturesStore) {
+        tfStore.getTrackedFeatures.pretty_features.forEach(f => selectedValues.value.set(f, ""))
     }
-    console.log("oui")
+
 })
 
-
-async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<number, Map<string, (string | number)[]>>> {
-    const resultsMap = new Map<number, Map<string, (string | number)[]>>();
-
+async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<number, FeatureValues>> {
+    const resultsMap = new Map<number, FeatureValues>();
     const promises = newTrackingChain.map(async ({ frame_idx, record_idx }) => {
         try {
             const data = await fetchRecordValues(frame_idx, record_idx);
@@ -76,27 +81,55 @@ async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<numbe
     return resultsMap;
 }
 
+const featureValues = ref<FeatureValues>(null)
+const mostProbable = computed<Map<string, string | number>>(() => {
+    if (!trackerDiagnostics.value || !tfStore) {
+        return null
+    }
 
+    const m = new Map<string, string | number>()
+    trackerDiagnostics.value.frames[trackerDiagnostics.value.frames.length - 1].memory.forEach(
+        (values, index) => m.set(tfStore.getTrackedFeatures.raw_features[index], values[0])
+    )
 
-watch(trackingChain, newTrackingChain => {
-    fetchAllRecords(newTrackingChain).then(data => {
-        
-        if (data) {
-            trackerDiagnostics.value = data.diagnostic
-        } else {
-            addSnackbar("Person not found", snackbarTypes.ERROR)
-            error.value = true
+    return m
+}
+)
+
+watch(trackerDiagnostics, newtrackerDiagnostics => {
+    if (!newtrackerDiagnostics) {
+        return []
+    }
+
+    const nodes: ChainNode[] = []
+    for (const a of newtrackerDiagnostics.frames) {
+        for (const b of a.records) {
+            nodes.push({ frame_idx: a.frame_idx, record_idx: b.record_idx })
         }
     }
-    ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
 
+    const temp: FeatureValues = new Map()
+    fetchAllRecords(nodes).then(data => {
+        data.forEach((recordValues, frameidx) => {
+            for (const feature in recordValues) {
+                console.log(recordValues)
+                const values = recordValues[feature]
+                const currentValues = temp.get(feature)
+
+                if (currentValues) {
+                    currentValues.push(...values)
+                    const currentValuesSet = new Set(currentValues.filter(a => a != null))
+                    temp.set(feature, Array.from(currentValuesSet))
+                } else {
+                    temp.set(feature, values)
+
+                }
+            }
+        })
+        featureValues.value = temp
+    })
 })
 
-function oui() {
-    fetchTrackingChain(props.trackerID).then(data =>
-        console.log(data)
-    )
-}
 
 onMounted(() => {
     const param = props.trackerID
@@ -106,17 +139,6 @@ onMounted(() => {
                 trackerDiagnostics.value = data.diagnostic
             } else {
                 addSnackbar("Person not found", snackbarTypes.ERROR)
-                error.value = true
-            }
-        }
-        ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
-
-    fetchTrackingChain(param)
-        .then(data => {
-            if (data.tracking_chain) {
-                trackingChain.value = data.tracking_chain
-            } else {
-                addSnackbar("Chain not found", snackbarTypes.ERROR)
                 error.value = true
             }
         }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))

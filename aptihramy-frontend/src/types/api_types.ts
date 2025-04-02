@@ -39,8 +39,10 @@ export interface TrackerInformation {
     diagnostic: (TrackerDiagnostics | null)
 }
 
+export type FeatureValues = Map<string, (string | number | null)[]>
+
 export interface RecordValuesTrackedFeatures {
-    records: Map<string, (string | number)[]>
+    records: FeatureValues
 }
 
 export interface TrackedYears {

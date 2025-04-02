@@ -12,7 +12,7 @@ from models import (
     RecordModel,
     TrackedYearsModel,
     tracker_diagnostics_to_base_model,
-    tracking_chain_to_base_model
+    tracking_chain_to_base_model,
 )
 import ast
 import time
@@ -106,11 +106,8 @@ def get_record_values(
 ):
     try:
         raw_tracked_features, _ = db.get_tracked_features()
-        print(
-            db.get_record(int(frame_idx), int(record_idx)).select(raw_tracked_features)
-        )
         df = db.get_record(int(frame_idx), int(record_idx)).select(raw_tracked_features)
-        return {"records": df.to_dict(as_series=False)}
+        return RecordModel(records=df.to_dict(as_series=False))
     except ValueError:
         raise HTTPException(
             status_code=400,
