@@ -1,7 +1,7 @@
 import polars as pl
 import blitzbeaver as bb
-from blitzbeaver.literals import ID
-from blitzbeaver import TrackerDiagnostics
+from blitzbeaver.literals import ID, Element
+from blitzbeaver import TrackerDiagnostics, MaterializedTrackingChain
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW
 import time as time
 
@@ -235,7 +235,7 @@ class Database:
         pretty = [COLUMN_RAW_TO_PRETTY[col] for col in raw]
         return (raw, pretty)
 
-    def get_record(self, frame_idx: int, record_idx: int) -> pl.DataFrame:
+    def get_record(self, frame_idx: int, record_idx: int) -> list[Element]:
         if not (0 <= frame_idx < len(self._dataframes)):
             raise IndexError(f"Frame index {frame_idx} is out of range.")
 
@@ -245,10 +245,20 @@ class Database:
             raise IndexError(
                 f"Record index {record_idx} is out of range for frame {frame_idx}."
             )
-        return frame[record_idx]
+            
+        raw_tracked_features, _ = self.get_tracked_features()
+        return frame[record_idx].select(raw_tracked_features).to_dict(as_series=False)
 
     def get_tracked_years(self) -> list[int]:
         return self._tracked_years
 
-    def get_tracking_chain(self, tracker_id: ID):
+    def get_materialized_tracking_chain(
+        self, tracker_id: ID
+    ) -> MaterializedTrackingChain:
+        return self._graph.materialize_tracking_chain(
+            tracker_id, self._dataframes, self._record_schema
+        )
+
+    def get_tracking_chain(self, tracker_id: int) -> list:
+        # I do not have access to the ChainNode class returned by the tracking chain
         return self._graph._raw.get_tracking_chain(tracker_id)

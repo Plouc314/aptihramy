@@ -6,10 +6,6 @@
                 <v-card-title class="title-text">{{ title }}</v-card-title>
             </v-col>
 
-            <v-col>
-
-            </v-col>
-
             <!-- Button aligned to the right -->
             <v-col cols="auto" class="text-center">
                 <v-btn class="ok-btn" @click="showPage" prepend-icon="mdi-book-open-page-variant">Show Page</v-btn>
@@ -40,12 +36,18 @@ import { fetchRecordValues } from '@/core/api';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { trackedYearsStore } from "@/core/stores/trackedYears";
-import { TrackerDiagnostics } from "@/types/api_types";
+import { TrackerDiagnostics, TrackerRecordDiagnostics } from "@/types/api_types";
 
 
 const props = defineProps<OneFrameInformationProps>();
 const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
+const recordDiag = computed<TrackerRecordDiagnostics | null>(() => {
+    if(props.diagnostic == null){
+        return null
+    }
 
+    return props.diagnostic.records.find(r => r.record_idx == props.recordIdx)
+})
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 const error = ref(false)
@@ -68,7 +70,7 @@ function showPage() {
 }
 
 function updateValues() {
-    fetchRecordValues(props.frameDiag.frame_idx, props.recordIdx).then(data => {
+    fetchRecordValues(props.frameIdx, props.recordIdx).then(data => {
         if (data.records) {
             records.value = data.records
         } else {
@@ -79,7 +81,8 @@ function updateValues() {
     )
 }
 
-watch(() => [props.frameDiag, props.recordIdx], _ => {
+
+watch(() => [props.frameIdx, props.recordIdx], _ => {
     updateValues()
 })
 
@@ -96,7 +99,7 @@ const frameInformation = computed(() => {
             a.set(tfStore.getPrettyFromRaw(rawFeature), "")
         }
     }
-    a.set("Annee", tyStore.getYearFromFrameIdx(props.frameDiag.frame_idx))
+    a.set("Annee", tyStore.getYearFromFrameIdx(props.frameIdx))
     a.set("Index dans le fichier", props.recordIdx + 2)
     return a
 

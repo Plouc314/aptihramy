@@ -57,3 +57,19 @@ export interface ChainNode {
 export interface TrackingChain {
     tracking_chain: ChainNode[]
 }
+
+
+export interface TrackerFrameDiagnosticsTest {
+    records: TrackerRecordDiagnostics[]
+    memory: string[][]
+}
+
+export interface MaterializedTrackerFrame {
+    frame_idx: number,
+    matching_record_idx: number,
+    frame_diagnostic: TrackerFrameDiagnosticsTest | null
+}
+
+export interface MaterializedTrackingChain {
+    frames: MaterializedTrackerFrame[] | null
+}

@@ -1,4 +1,4 @@
-import { TrackerFrameDiagnostics, trackerID, TrackerRecordDiagnostics } from "./api_types";
+import { TrackerFrameDiagnostics, TrackerFrameDiagnosticsTest, trackerID, TrackerRecordDiagnostics } from "./api_types";
 
 // Define the shape of a record
 export interface RecordType {
@@ -22,7 +22,8 @@ export interface DisplayPeopleProps {
 }
 
 export interface OneFrameInformationProps {
-    frameDiag: TrackerFrameDiagnostics,
+    diagnostic: TrackerFrameDiagnosticsTest | null,
+    frameIdx: number,
     recordIdx: number,
     nbColumns: number;
 }
@@ -68,3 +69,5 @@ export interface Snackbar {
 }
 
 export type NodePosition = { x: number, y: number }
+
+export type FrameRecordIdx = { frameIdx: number, recordIdx: number }

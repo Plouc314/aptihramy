@@ -10,12 +10,12 @@ from models import (
     FilterRequest,
     FilterResponse,
     RecordModel,
+    TrackingChainModel,
+    TrackerDiagnosticsModel,
     TrackedYearsModel,
-    tracker_diagnostics_to_base_model,
-    tracking_chain_to_base_model,
+    MaterializedTrackingChainModel,
 )
 import ast
-import time
 
 app = FastAPI()
 
@@ -73,6 +73,7 @@ def filter_data(
     matching_trackers = db.get_filtred_trackers_multiple_features(
         raw_feature_search_value
     )
+
     data = db.get_all_memory_from_last_frame_for_trackers(matching_trackers)
     return FilterResponse(data=data)
 
@@ -84,31 +85,40 @@ def get_tracked_features(db: Database = Depends(get_database)):
 
 
 @app.get("/tracker")
-def get_tracker_id_information(tracker_id: str, db: Database = Depends(get_database)):
-    id = ast.literal_eval(tracker_id)
-    if not isinstance(id, tuple):
-        raise HTTPException(status_code=400, detail=f"Invalid tracker id: {tracker_id}")
-    return tracker_diagnostics_to_base_model(db.get_diagnostics(id))
+def get_tracker_id_information(tracker_id: int, db: Database = Depends(get_database)):
+    return TrackerDiagnosticsModel.tracker_diagnostics_to_base_model(
+        db.get_diagnostics(tracker_id)
+    )
 
 
 @app.get("/tracking_chain")
-def get_tracking_chain(tracker_id: str, db: Database = Depends(get_database)):
-    id = ast.literal_eval(tracker_id)
-    if not isinstance(id, tuple):
-        raise HTTPException(status_code=400, detail=f"Invalid tracker id: {tracker_id}")
+def get_tracking_chain(tracker_id: int, db: Database = Depends(get_database)):
+    return TrackingChainModel.tracking_chain_to_base_model(
+        db.get_tracking_chain(tracker_id)
+    )
 
-    return tracking_chain_to_base_model(db.get_tracking_chain(id))
+
+@app.get("/materialized_frames")
+def get_materialized_frames(tracker_id: int, db: Database = Depends(get_database)):
+    try:
+        materialized_chain = db.get_materialized_tracking_chain(tracker_id)
+    except:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unkwown tracking chain ${tracker_id}",
+        )
+    return MaterializedTrackingChainModel.from_materialized_tracking_chain(
+        materialized_chain
+    )
 
 
 @app.get("/record")
 def get_record_values(
-    frame_idx: str, record_idx: str, db: Database = Depends(get_database)
+   frame_idx: int, record_idx: int, db: Database = Depends(get_database)
 ):
     try:
-        raw_tracked_features, _ = db.get_tracked_features()
-        df = db.get_record(int(frame_idx), int(record_idx)).select(raw_tracked_features)
-        return RecordModel(records=df.to_dict(as_series=False))
-    except ValueError:
+        return RecordModel(records=db.get_record(frame_idx, record_idx))
+    except Exception:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid frame index: {frame_idx} or record index: {record_idx}",

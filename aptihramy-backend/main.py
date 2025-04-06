@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 import uvicorn
-from database import Database
 import polars as pl
 import blitzbeaver as bb
 import time as time

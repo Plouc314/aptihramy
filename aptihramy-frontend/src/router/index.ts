@@ -1,6 +1,6 @@
 // Composables
 import HomePage from '../pages/HomePage.vue'
-import TrackingChain from '@/pages/TrackingChainTestTest.vue'
+import TrackingChain from '@/pages/TrackingChain.vue'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // Correct import for createRouter
 import EditPage from '@/pages/EditPage.vue'
 

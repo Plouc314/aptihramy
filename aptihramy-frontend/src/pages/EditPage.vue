@@ -112,7 +112,6 @@ watch(trackerDiagnostics, newtrackerDiagnostics => {
     fetchAllRecords(nodes).then(data => {
         data.forEach((recordValues, frameidx) => {
             for (const feature in recordValues) {
-                console.log(recordValues)
                 const values = recordValues[feature]
                 const currentValues = temp.get(feature)
 

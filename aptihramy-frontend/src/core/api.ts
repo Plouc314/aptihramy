@@ -1,4 +1,4 @@
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, TrackingChain } from "../types/api_types"
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, TrackingChain, MaterializedTrackingChain } from "../types/api_types"
 import { useSnackbarQueue } from "./snackbarQueue";
 // Create an Axios instance
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
@@ -8,12 +8,12 @@ const DEFAULT_HEADERS = {
     "Content-Type": "application/json",
 };
 
-async function fetchData<T>(endpoint: string, options: RequestInit, params?: Record<string, string>): Promise<T> {
+async function fetchData<T>(endpoint: string, options: RequestInit, params?: Record<string, string | number>): Promise<T> {
     const url = new URL(endpoint, BASE_URL);
 
     if (params) {
         Object.entries(params).forEach(([key, value]) => {
-            url.searchParams.append(key, value);
+            url.searchParams.append(key, value.toString());
         });
     }
 
@@ -53,4 +53,8 @@ export async function fetchRecordValues(frame_idx: number, record_idx: number): 
 
 export async function fetchTrackedYears(): Promise<TrackedYears> {
     return fetchData<TrackedYears>("tracked_years", { method: "GET", headers: DEFAULT_HEADERS })
+}
+
+export async function fetchMaterializedChain(tracker_id: string): Promise<MaterializedTrackingChain> {
+    return fetchData<MaterializedTrackingChain>("/materialized_frames", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id })
 }
