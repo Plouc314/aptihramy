@@ -11,9 +11,7 @@ class TrackingChainModel(BaseModel):
     tracking_chain: List[ChainNodeModel] | None
 
     @staticmethod
-    def tracking_chain_to_base_model(l: list) -> "TrackingChainModel":
+    def tracking_chain_to_base_model(l: list[tuple[int, int]]) -> "TrackingChainModel":
         return TrackingChainModel(
-            tracking_chain=[
-                ChainNodeModel(frame_idx=r.frame_idx, record_idx=r.record_idx) for r in l
-            ]
+            tracking_chain=[ChainNodeModel(frame_idx=r[0], record_idx=r[1]) for r in l]
         )

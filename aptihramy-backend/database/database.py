@@ -144,6 +144,15 @@ class Database:
         return tracker_feature_mem
 
     def get_diagnostics(self, tracker_id: ID) -> TrackerDiagnostics | None:
+        """
+        Retrieves diagnostics for a specific tracker.
+
+        Args:
+            tracker_id (ID): The ID of the tracker.
+
+        Returns:
+            TrackerDiagnostics | None: The diagnostics for the tracker, or None if not found.
+        """
         return self._graph.diagnostics.get_tracker(tracker_id)
 
     def get_all_memory_from_last_frame_for_tracker(
@@ -236,6 +245,19 @@ class Database:
         return (raw, pretty)
 
     def get_record(self, frame_idx: int, record_idx: int) -> list[Element]:
+        """
+        Retrieves a specific record from a given frame as a dictionary.
+
+        Args:
+            frame_idx (int): The index of the frame (i.e., year).
+            record_idx (int): The index of the record within the frame.
+
+        Returns:
+            list[Element]: A dictionary of tracked feature values for the specified record.
+
+        Raises:
+            IndexError: If the frame or record index is out of range.
+        """
         if not (0 <= frame_idx < len(self._dataframes)):
             raise IndexError(f"Frame index {frame_idx} is out of range.")
 
@@ -245,7 +267,7 @@ class Database:
             raise IndexError(
                 f"Record index {record_idx} is out of range for frame {frame_idx}."
             )
-            
+
         raw_tracked_features, _ = self.get_tracked_features()
         return frame[record_idx].select(raw_tracked_features).to_dict(as_series=False)
 
@@ -255,10 +277,32 @@ class Database:
     def get_materialized_tracking_chain(
         self, tracker_id: ID
     ) -> MaterializedTrackingChain:
+        """
+        Retrieves the materialized tracking chain for a tracker.
+
+        Args:
+            tracker_id (ID): The ID of the tracker.
+
+        Returns:
+            MaterializedTrackingChain: The materialized tracking chain object.
+        """
         return self._graph.materialize_tracking_chain(
             tracker_id, self._dataframes, self._record_schema
         )
 
-    def get_tracking_chain(self, tracker_id: int) -> list:
-        # I do not have access to the ChainNode class returned by the tracking chain
-        return self._graph._raw.get_tracking_chain(tracker_id)
+    def get_tracking_chain(self, tracker_id: int) -> list[tuple[int, int]]:
+        """
+        Retrieves a list of (frame_idx, record_idx) tuples for a tracker.
+
+        Args:
+            tracker_id (int): The ID of the tracker.
+
+        Returns:
+            list[tuple[int, int]]: A list of frame and record indices in the tracking chain.
+        """
+        tracking_chain: list[tuple[int, int]] = []
+        for frame in self.get_materialized_tracking_chain(tracker_id).frames:
+            if frame.record_idx is not None:
+                tracking_chain.append((frame.frame_idx, frame.record_idx))
+
+        return tracking_chain
