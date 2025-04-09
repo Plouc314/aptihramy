@@ -6,9 +6,17 @@ from database import Database
 import os
 from database import get_database
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW, FOLDER_PATH
-import json
-from models import FilterRequest, FilterResponse
-import time
+from models import (
+    FilterRequest,
+    FilterResponse,
+    RecordModel,
+    TrackingChainModel,
+    TrackerDiagnosticsModel,
+    TrackedYearsModel,
+    MaterializedTrackingChainModel,
+)
+import ast
+
 app = FastAPI()
 
 
@@ -65,6 +73,7 @@ def filter_data(
     matching_trackers = db.get_filtred_trackers_multiple_features(
         raw_feature_search_value
     )
+
     data = db.get_all_memory_from_last_frame_for_trackers(matching_trackers)
     return FilterResponse(data=data)
 
@@ -76,6 +85,46 @@ def get_tracked_features(db: Database = Depends(get_database)):
 
 
 @app.get("/tracker")
-def get_tracker_id_information(tracker_id_1: int, tracker_id_2: int):
-    tracker_id: ID = tuple(tracker_id_1, tracker_id_2)
-    return {"item_id": tracker_id}
+def get_tracker_id_information(tracker_id: int, db: Database = Depends(get_database)):
+    return TrackerDiagnosticsModel.tracker_diagnostics_to_base_model(
+        db.get_diagnostics(tracker_id)
+    )
+
+
+@app.get("/tracking_chain")
+def get_tracking_chain(tracker_id: int, db: Database = Depends(get_database)):
+    return TrackingChainModel.tracking_chain_to_base_model(
+        db.get_tracking_chain(tracker_id)
+    )
+
+
+@app.get("/materialized_frames")
+def get_materialized_frames(tracker_id: int, db: Database = Depends(get_database)):
+    try:
+        materialized_chain = db.get_materialized_tracking_chain(tracker_id)
+    except:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unkwown tracking chain ${tracker_id}",
+        )
+    return MaterializedTrackingChainModel.from_materialized_tracking_chain(
+        materialized_chain
+    )
+
+
+@app.get("/record")
+def get_record_values(
+   frame_idx: int, record_idx: int, db: Database = Depends(get_database)
+):
+    try:
+        return RecordModel(records=db.get_record(frame_idx, record_idx))
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid frame index: {frame_idx} or record index: {record_idx}",
+        )
+
+
+@app.get("/tracked_years")
+def get_tracked_years(db: Database = Depends(get_database)):
+    return TrackedYearsModel(tracked_years=db.get_tracked_years())

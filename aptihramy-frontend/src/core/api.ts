@@ -1,4 +1,4 @@
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation } from "../types/api_types"
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, TrackingChain, MaterializedTrackingChain } from "../types/api_types"
 import { useSnackbarQueue } from "./snackbarQueue";
 // Create an Axios instance
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
@@ -8,8 +8,14 @@ const DEFAULT_HEADERS = {
     "Content-Type": "application/json",
 };
 
-async function fetchData<T>(endpoint: string, options: RequestInit): Promise<T> {
+async function fetchData<T>(endpoint: string, options: RequestInit, params?: Record<string, string | number>): Promise<T> {
     const url = new URL(endpoint, BASE_URL);
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value.toString());
+        });
+    }
 
     try {
         const response = await fetch(url, options);
@@ -33,10 +39,22 @@ export async function fetchTrackedFeatures(): Promise<TrackedFeatures> {
     return fetchData<TrackedFeatures>("/features", { method: "GET", headers: DEFAULT_HEADERS });
 }
 
-export async function fetchTrackerInformation(tracker_id_1: number, tracker_id_2: number): Promise<TrackerInformation> {
-    const url = new URL("/tracker");
-    url.searchParams.append("tracker_id_1", tracker_id_1.toString());
-    url.searchParams.append("tracker_id_2", tracker_id_2.toString());
+export async function fetchTrackerInformation(tracker_id: string): Promise<TrackerInformation> {
+    return fetchData<TrackerInformation>("/tracker", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id });
+}
 
-    return fetchData<TrackerInformation>(url.toString(), { method: "GET", headers: DEFAULT_HEADERS });
+export async function fetchTrackingChain(tracker_id: string): Promise<TrackingChain> {
+    return fetchData<TrackingChain>("/tracking_chain", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id });
+}
+
+export async function fetchRecordValues(frame_idx: number, record_idx: number): Promise<RecordValuesTrackedFeatures> {
+    return fetchData<RecordValuesTrackedFeatures>("/record", { method: "GET", headers: DEFAULT_HEADERS }, { "frame_idx": frame_idx.toString(), "record_idx": record_idx.toString() });
+}
+
+export async function fetchTrackedYears(): Promise<TrackedYears> {
+    return fetchData<TrackedYears>("tracked_years", { method: "GET", headers: DEFAULT_HEADERS })
+}
+
+export async function fetchMaterializedChain(tracker_id: string): Promise<MaterializedTrackingChain> {
+    return fetchData<MaterializedTrackingChain>("/materialized_frames", { method: "GET", headers: DEFAULT_HEADERS }, { "tracker_id": tracker_id })
 }

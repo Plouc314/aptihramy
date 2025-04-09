@@ -5,3 +5,12 @@ export function getPanelColor(value: number) {
 
     return `rgb(${red}, ${green}, 110)`;
 };
+
+export function getColor(value: number) {
+    const rootStyles = getComputedStyle(document.documentElement);
+
+    if (value <= 0.25) return rootStyles.getPropertyValue("--color-red").trim();
+    else if (value <= 0.5) return rootStyles.getPropertyValue("--color-orange").trim();
+    else if (value <= 0.75) return rootStyles.getPropertyValue("--color-yellow").trim();
+    else return rootStyles.getPropertyValue("--color-green").trim();
+}

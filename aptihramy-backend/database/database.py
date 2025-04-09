@@ -1,6 +1,7 @@
 import polars as pl
 import blitzbeaver as bb
-from blitzbeaver.literals import ID
+from blitzbeaver.literals import ID, Element
+from blitzbeaver import TrackerDiagnostics, MaterializedTrackingChain
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW
 import time as time
 
@@ -12,8 +13,7 @@ class Database:
         record_schema: bb.RecordSchema,
         path_graph: str,
         csv_path: str,
-        start_year: int,
-        end_year: int,
+        tracked_years: list[int],
     ):
         """
         Initializes the Database instance.
@@ -26,15 +26,21 @@ class Database:
             end_year (int): The ending year of the dataset.
         """
         self._record_schema = record_schema
+        self._tracked_years = tracked_years
         self._path_graph = path_graph
-        self._csv_path = csv_path
-        self._start_year = start_year
-        self._end_year = end_year
         self._graph = bb.read_beaver(path_graph)
         self._feature_indexes = self._get_feature_indexes()
         self._feature_last_frame_value = self._build_last_frame_values()
+        self._dataframes = self.get_dataframes(csv_path, tracked_years)
 
     def _get_feature_indexes(self) -> dict[str, int]:
+        """
+        Constructs a dictionnary mapping a tracked feature to its index
+        Returns:
+            dict[str, int]: A dictionnary where:
+                - Keys are tracked features (from schema)
+                - Values are the index of the feature in the schema list
+        """
         d = {}
         for i, field in enumerate(self._record_schema.fields):
             d[field.name] = i
@@ -67,7 +73,10 @@ class Database:
             tracker_feature_mem = {}
             for tracker_id in self._graph.trackers_ids:
                 tracker_diagnostic = self._graph.diagnostics.get_tracker(tracker_id)
-                if tracker_diagnostic is not None and len(tracker_diagnostic.frames) > 0:
+                if (
+                    tracker_diagnostic is not None
+                    and len(tracker_diagnostic.frames) > 0
+                ):
                     last_diagnostic = tracker_diagnostic.frames[-1]
                     tracker_feature_mem[tracker_id] = last_diagnostic.memory[
                         feature_index
@@ -76,7 +85,9 @@ class Database:
             d[schema.name] = tracker_feature_mem
         return d
 
-    def get_dataframes(self) -> list[pl.DataFrame]:
+    def get_dataframes(
+        self, csv_path: str, tracked_years: list[int]
+    ) -> list[pl.DataFrame]:
         """
         Reads CSV files for each year in the range and returns them as a list of Polars DataFrames.
 
@@ -84,8 +95,8 @@ class Database:
             list[pl.DataFrame]: A list of DataFrames loaded from CSV files.
         """
         return [
-            pl.read_csv(f"{self._csv_path}/{year}.csv", infer_schema_length=10000)
-            for year in range(self._start_year, self._end_year + 1)
+            pl.read_csv(f"{csv_path}/{year}.csv", infer_schema_length=10000)
+            for year in tracked_years
         ]
 
     def get_feature_index(self, raw_feature: str) -> int | None:
@@ -131,6 +142,18 @@ class Database:
                 tracker_feature_mem[tracker_id] = last_diagnostic.memory[feature_index]
 
         return tracker_feature_mem
+
+    def get_diagnostics(self, tracker_id: ID) -> TrackerDiagnostics | None:
+        """
+        Retrieves diagnostics for a specific tracker.
+
+        Args:
+            tracker_id (ID): The ID of the tracker.
+
+        Returns:
+            TrackerDiagnostics | None: The diagnostics for the tracker, or None if not found.
+        """
+        return self._graph.diagnostics.get_tracker(tracker_id)
 
     def get_all_memory_from_last_frame_for_tracker(
         self, tracker_id: ID
@@ -220,3 +243,66 @@ class Database:
         raw = [feature.name for feature in self._record_schema.fields]
         pretty = [COLUMN_RAW_TO_PRETTY[col] for col in raw]
         return (raw, pretty)
+
+    def get_record(self, frame_idx: int, record_idx: int) -> list[Element]:
+        """
+        Retrieves a specific record from a given frame as a dictionary.
+
+        Args:
+            frame_idx (int): The index of the frame (i.e., year).
+            record_idx (int): The index of the record within the frame.
+
+        Returns:
+            list[Element]: A dictionary of tracked feature values for the specified record.
+
+        Raises:
+            IndexError: If the frame or record index is out of range.
+        """
+        if not (0 <= frame_idx < len(self._dataframes)):
+            raise IndexError(f"Frame index {frame_idx} is out of range.")
+
+        frame = self._dataframes[frame_idx]
+
+        if not (0 <= record_idx < len(frame)):
+            raise IndexError(
+                f"Record index {record_idx} is out of range for frame {frame_idx}."
+            )
+
+        raw_tracked_features, _ = self.get_tracked_features()
+        return frame[record_idx].select(raw_tracked_features).to_dict(as_series=False)
+
+    def get_tracked_years(self) -> list[int]:
+        return self._tracked_years
+
+    def get_materialized_tracking_chain(
+        self, tracker_id: ID
+    ) -> MaterializedTrackingChain:
+        """
+        Retrieves the materialized tracking chain for a tracker.
+
+        Args:
+            tracker_id (ID): The ID of the tracker.
+
+        Returns:
+            MaterializedTrackingChain: The materialized tracking chain object.
+        """
+        return self._graph.materialize_tracking_chain(
+            tracker_id, self._dataframes, self._record_schema
+        )
+
+    def get_tracking_chain(self, tracker_id: int) -> list[tuple[int, int]]:
+        """
+        Retrieves a list of (frame_idx, record_idx) tuples for a tracker.
+
+        Args:
+            tracker_id (int): The ID of the tracker.
+
+        Returns:
+            list[tuple[int, int]]: A list of frame and record indices in the tracking chain.
+        """
+        tracking_chain: list[tuple[int, int]] = []
+        for frame in self.get_materialized_tracking_chain(tracker_id).frames:
+            if frame.record_idx is not None:
+                tracking_chain.append((frame.frame_idx, frame.record_idx))
+
+        return tracking_chain

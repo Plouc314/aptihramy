@@ -1,4 +1,4 @@
-import { trackerID } from "./api_types";
+import { TrackerFrameDiagnostics, TrackerFrameDiagnosticsTest, trackerID, TrackerRecordDiagnostics } from "./api_types";
 
 // Define the shape of a record
 export interface RecordType {
@@ -13,12 +13,8 @@ export interface TopBarProps {
     goToEditPage?: Function;
     title: string;
 }
-export interface FeatureValues {
-    feature: string
-    values: string[]
-}
-export type ColumnRows = Map<string, string[]>
 
+export type ColumnRows = Map<string, string[]>
 
 export interface DisplayPeopleProps {
     data: TrackerIDMemory
@@ -26,8 +22,17 @@ export interface DisplayPeopleProps {
 }
 
 export interface OneFrameInformationProps {
-    trackedPersonIndex: number;
-    frameIndex: number;
+    diagnostic: TrackerFrameDiagnosticsTest | null,
+    frameIdx: number,
+    recordIdx: number,
+    nbColumns: number;
+}
+
+export interface CompareFrameProps {
+    frameDiag1: TrackerFrameDiagnostics
+    recordIdx1: number;
+    frameDiag2: TrackerFrameDiagnostics;
+    recordIdx2: number;
     nbColumns: number;
 }
 
@@ -45,11 +50,11 @@ export interface FilterProps {
 }
 
 export interface TrackinChainProps {
-    trackedID: trackerID
+    trackerID: trackerID
 }
 
 export interface EditPageProps {
-    trackedPersonIndex: number
+    trackerID: trackerID
 }
 
 export interface EditMetricsProps {
@@ -62,3 +67,7 @@ export interface Snackbar {
     message: string,
     type: string
 }
+
+export type NodePosition = { x: number, y: number }
+
+export type FrameRecordIdx = { frameIdx: number, recordIdx: number }

@@ -1,9 +1,17 @@
 <template>
+    {{ records1 }}
+    <br>
+    {{ records2 }}
     <v-card class="card">
+
         <v-row justify="space-between" no-gutters>
             <!-- Title aligned to the left -->
             <v-col cols="auto">
                 <v-card-title class="title-text">{{ title }}</v-card-title>
+            </v-col>
+
+            <v-col>
+
             </v-col>
 
             <!-- Button aligned to the right -->
@@ -29,25 +37,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { OneFrameInformationProps } from '../types/types';
+import { CompareFrameProps, OneFrameInformationProps } from '../types/types';
 import '../styles/theme.css';
 import '../styles/button.css';
 import { fetchRecordValues } from '@/core/api';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { trackedYearsStore } from "@/core/stores/trackedYears";
-import { TrackerDiagnostics, TrackerRecordDiagnostics } from "@/types/api_types";
+import { TrackerDiagnostics } from "@/types/api_types";
 
 
-const props = defineProps<OneFrameInformationProps>();
+const props = defineProps<CompareFrameProps>();
 const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
-const recordDiag = computed<TrackerRecordDiagnostics | null>(() => {
-    if(props.diagnostic == null){
-        return null
-    }
 
-    return props.diagnostic.records.find(r => r.record_idx == props.recordIdx)
-})
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 const error = ref(false)
@@ -69,10 +71,23 @@ function showPage() {
     console.log("TO BE IMPLEMENTED")
 }
 
+const records1 = ref()
+const records2 = ref()
+
 function updateValues() {
-    fetchRecordValues(props.frameIdx, props.recordIdx).then(data => {
+    fetchRecordValues(props.frameDiag1.frame_idx, props.recordIdx1).then(data => {
         if (data.records) {
-            records.value = data.records
+            records1.value = data.records
+        } else {
+            addSnackbar("Person not found", snackbarTypes.ERROR)
+            error.value = true
+        }
+    }
+    )
+
+    fetchRecordValues(props.frameDiag2.frame_idx, props.recordIdx2).then(data => {
+        if (data.records) {
+            records2.value = data.records
         } else {
             addSnackbar("Person not found", snackbarTypes.ERROR)
             error.value = true
@@ -81,8 +96,7 @@ function updateValues() {
     )
 }
 
-
-watch(() => [props.frameIdx, props.recordIdx], _ => {
+watch(() => [props.frameDiag1, props.recordIdx1, props.frameDiag2, props.recordIdx2], _ => {
     updateValues()
 })
 
@@ -99,8 +113,7 @@ const frameInformation = computed(() => {
             a.set(tfStore.getPrettyFromRaw(rawFeature), "")
         }
     }
-    a.set("Annee", tyStore.getYearFromFrameIdx(props.frameIdx))
-    a.set("Index dans le fichier", props.recordIdx + 2)
+
     return a
 
 })

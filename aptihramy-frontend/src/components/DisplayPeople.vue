@@ -56,8 +56,7 @@ const personToDisplay = computed(() => {
 
 // Row click handler
 const handleRowClick = (id: trackerID): void => {
-    console.log("To be updated")
-    //router.push({ name: 'TrackingChain', params: { trackerID_1: id[0], trackerID_2: id[1] } });
+    router.push({ name: 'TrackingChain', params: { trackerID: id } });
 };
 
 </script>
