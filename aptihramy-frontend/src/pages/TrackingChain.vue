@@ -49,14 +49,17 @@
 
         <!-- Graph Row -->
         <v-row>
-            <v-col cols="12" id="network"></v-col>
+            <v-col :style="networkStyle" id="network"></v-col>
+
         </v-row>
 
         <v-row>
-            <v-col v-if="selectedFrameRecordIdx !== null" cols="12">
+            <v-col v-if="selectedFrameRecordIdx !== null">
                 <OneFrameInformation :frame-idx="selectedFrameRecordIdx.frameIdx"
-                    :diagnostic="selectedTrackerFrameDiagnostics" :record-idx="selectedFrameRecordIdx.recordIdx"
-                    :nb-columns="2" />
+                    :record-idx="selectedFrameRecordIdx.recordIdx"
+                    :recordValuesDiagnostic="selectedRecordValuesDiagnostic" :memory="selectedFrameMemory"
+                    :nb-columns="3" @close="closeFrame" />
+
             </v-col>
         </v-row>
 
@@ -78,7 +81,7 @@
 <script setup lang="ts">
 
 import { useRoute, useRouter } from 'vue-router';
-import { computed, ref, onMounted, watch, nextTick } from "vue";
+import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "vue";
 import TopBar from '@/components/TopBars/TopBar.vue';
 import { FrameRecordIdx, NodePosition, TrackinChainProps } from "../types/types"
 import { Network, Edge, Node, IdType } from 'vis-network';
@@ -86,14 +89,14 @@ import '../styles/theme.css';
 import '../styles/button.css';
 import '../styles/error_card.css';
 
-import { fetchMaterializedChain, fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
-import { ChainNode, MaterializedTrackerFrame, TrackerDiagnostics, TrackerFrameDiagnostics, TrackerFrameDiagnosticsTest } from "@/types/api_types";
+import { fetchMaterializedFrames } from "@/core/api";
+import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedYearsStore } from '../core/stores/trackedYears';
-import { getColor } from '@/core/utils';
+import { getEdgeColor, getNodeColor } from '@/core/utils';
 
-const ANGLE = 60
 const OFFSET_X = 150
+const OFFSET_Y = 100
 
 const tyStore = trackedYearsStore()
 
@@ -106,6 +109,13 @@ const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 const route = useRoute();
 const router = useRouter();
 
+const networkStyle = computed(() => {
+    return {
+        height: selectedFrameRecordIdx.value ? '35vh' : '60vh',
+    };
+});
+
+
 const selectedNodeID = ref<string | null>(null)
 
 const error = ref(false)
@@ -113,25 +123,40 @@ const error = ref(false)
 const nodes = ref<Node[]>(null)
 const edges = ref<Edge[]>(null)
 
+
+const selectedNodeIndex = computed<NodePosition | null>(() => {
+    if (selectedNodeID.value == null) {
+        return null
+    }
+    return decodeId(selectedNodeID.value)
+})
+
+
+const selectedRecordValuesDiagnostic = computed<RecordValuesDiag | null>(() => {
+    if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
+        return null
+    }
+
+    const mFrame = materializedTrackerFrames.value[selectedNodeIndex.value.x]
+    return mFrame.records[selectedNodeIndex.value.y]
+})
+
+const selectedFrameMemory = computed<string[][]>(() => {
+    if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
+        return null
+    }
+    return materializedTrackerFrames.value[selectedNodeIndex.value.x].memory
+})
+
 const selectedFrameRecordIdx = computed<FrameRecordIdx>(() => {
     if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
         return null
     }
 
     const mFrame = materializedTrackerFrames.value[selectedNodeIndex.value.x]
-    const diag = mFrame.frame_diagnostic
-    if (diag === null) {
-        return { frameIdx: mFrame.frame_idx, recordIdx: mFrame.matching_record_idx }
-    }
-    return { frameIdx: mFrame.frame_idx, recordIdx: diag.records[selectedNodeIndex.value.y].record_idx }
-})
 
-const selectedTrackerFrameDiagnostics = computed<TrackerFrameDiagnosticsTest | null>(() => {
-    if (selectedNodeIndex.value == null) {
-        return null
-    }
+    return { frameIdx: mFrame.frame_idx, recordIdx: mFrame.records[selectedNodeIndex.value.y].record_idx }
 
-    return materializedTrackerFrames.value[selectedNodeIndex.value.x].frame_diagnostic
 })
 
 const props = defineProps<TrackinChainProps>();
@@ -159,13 +184,10 @@ const options = ref({
     },
 });
 
-const selectedNodeIndex = computed<NodePosition | null>(() => {
-    if (selectedNodeID.value == null) {
-        return null
-    }
-    return decodeId(selectedNodeID.value)
-})
-
+function closeFrame() {
+    selectedNodeID.value = null
+    resetZoom()
+}
 
 function encodeId(x: number, y: number): string {
     return `${x},${y}`;
@@ -176,48 +198,82 @@ function decodeId(id: string): NodePosition {
     return { x, y };
 }
 
+function buildEdge(from: string, to: string, color: string, label: string, dashes: boolean): Edge {
+    return {
+        from: from,
+        to: to,
+        color: color,
+        width: 2,
+        label: label,
+        font: {
+            size: 14, // Adjust size for readability
+            color: "#007bff",
+            align: "top",
+            bold: "true",
+        },
+        arrows: "to",
+        dashes: dashes,
+    }
+}
+
 function setupEdges(mFrames: MaterializedTrackerFrame[]) {
 
 
     const newEdges: Edge[] = []
     for (let i = 0; i < mFrames.length - 1; i++) {
-
-        const nextNode = mFrames[i + 1]
-        if (nextNode.frame_diagnostic === null) {
-            // Error
-            return
+        const currentFrame = mFrames[i]
+        if (currentFrame.matching_record_idx == null) {
+            continue
         }
-        const records = nextNode.frame_diagnostic.records
-        for (let r = 0; r < records.length; r++) {
-            const record = records[r]
+        const nextFrame = mFrames[i + 1]
 
-            const e = {
-                from: encodeId(i, 0),
-                to: encodeId(i + 1, r),
-                color: getColor(record.record_score),
-                width: 2,
-                label: `${Math.round(record.record_score * 100) / 100}`,
-                font: {
-                    size: 14, // Adjust size for readability
-                    color: "#007bff",
-                    align: "top",
-                    bold: "true",
-                },
-                arrows: "to",
-                dashes: r != 0,
+        // Next frame does not have a record index, create an edge to the next frame with a record index
+        if (nextFrame.matching_record_idx == null) {
+
+            const index = mFrames.findIndex((frame, index) => frame.matching_record_idx != null && index > i)
+            if (index >= 0) {
+
+                const nextMatchingRecords = mFrames[index].records
+
+                for (let r = 0; r < nextMatchingRecords.length; r++) {
+
+                    const recordDiagnostic = nextFrame.records[r].record_diagnostics
+
+                    if (!recordDiagnostic) {
+                        console.log("Setup edges: record does not have a diagnostic")
+                        continue
+                    }
+
+                    newEdges.push(buildEdge(encodeId(i, 0), encodeId(index, r), getEdgeColor(recordDiagnostic.record_score), `${Math.round(recordDiagnostic.record_score * 100) / 100}`, r != 0))
+
+                }
             }
-            newEdges.push(e)
         }
-    }
-    edges.value = newEdges
-}
 
-function buildNode(id: string, year: number, positionX: number, positionY: number): Node {
+        const nextNodeRecords = nextFrame.records
+        const hasMatchedYear = nextFrame.matching_record_idx != null
+
+        for (let r = 0; r < nextNodeRecords.length; r++) {
+
+            const recordDiagnostic = nextFrame.records[r].record_diagnostics
+            if (!recordDiagnostic) {
+                console.log("Setup edges: record does not have a diagnostic")
+                continue
+            }
+
+            // console.log(mFrames[i].matching_record_idx)
+            newEdges.push(buildEdge(encodeId(i, 0), encodeId(i + 1, r), getEdgeColor(recordDiagnostic.record_score), `${Math.round(recordDiagnostic.record_score * 100) / 100}`, r != 0 || !hasMatchedYear))
+        }
+
+        edges.value = newEdges
+    }
+}
+function buildNode(id: string, year: number, positionX: number, positionY: number, matched: boolean): Node {
     return {
         id: id,
         label: `${year}`,
-        shape: "box",
-        color: "#0056B3",
+        shape: "circle",
+        color: getNodeColor(matched),
         font: {
             size: 24,
             color: "#ffffff",
@@ -237,50 +293,43 @@ function setupNodes(mFrames: MaterializedTrackerFrame[]) {
         return
     }
 
-    const year = tyStore.getYearFromFrameIdx(mFrames[0].frame_idx)
-    newNodes.push(buildNode(encodeId(0, 0), year, 0, 0))
-
-    for (let i = 1; i < mFrames.length; i++) {
+    for (let i = 0; i < mFrames.length; i++) {
         centerX += OFFSET_X
 
         const frame = mFrames[i]
         const year = tyStore.getYearFromFrameIdx(frame.frame_idx)
+        const hasMatchedYear = frame.matching_record_idx != null
+        const records = frame.records
 
-        const records = frame.frame_diagnostic.records
-        const positions = getNodePositions(centerX - OFFSET_X, ANGLE, OFFSET_X, records.length)
+        const positions = getNodeYPositions(OFFSET_Y, records.length, hasMatchedYear)
 
         for (let r = 0; r < records.length; r++) {
-            if (r == 0) {
-                newNodes.push(buildNode(encodeId(i, 0), year, i * OFFSET_X, 0))
-            } else {
-                newNodes.push(buildNode(encodeId(i, r), year, positions[r - 1].x, positions[r - 1].y))
-            }
+            // console.log(positions)
+            newNodes.push(buildNode(encodeId(i, r), year, i * OFFSET_X, positions[r], r == 0 && hasMatchedYear))
         }
+
+
     }
 
     nodes.value = newNodes
 }
 
-function getNodePositions(centerX: number, angleRange: number, radius: number, numNodes: number): NodePosition[] {
-    if (numNodes == 1) {
-        return [{ x: centerX + radius, y: 0 }]
-    }
-
+function getNodeYPositions(offsetY: number, numNodes: number, hasMatchedYear): number[] {
     let positions = [];
-    let angleStep = angleRange / (numNodes - 1);
 
-    let a = angleStep
+    let step = hasMatchedYear ? 0 : offsetY
     for (let i = 0; i < Math.round(numNodes / 2); i++) {
-        let angle = a * (Math.PI / 180); // Convert to radians
-        let xPos = centerX + radius;
-        let yPos = radius * Math.sin(angle);
-        positions.push({ x: xPos, y: yPos });
-        positions.push({ x: xPos, y: -yPos });
-        a += angleStep
-
+        positions.push(step)
+        step += offsetY
     }
 
-    return positions.slice(0, numNodes);
+    step = -offsetY * Math.floor(numNodes / 2)
+    for (let i = 0; i < Math.floor(numNodes / 2); i++) {
+        positions.push(step)
+        step += offsetY
+    }
+    return positions
+
 }
 
 
@@ -315,11 +364,11 @@ function setupNetwork() {
     });
 
     network.value.on("hoverEdge", function (params) {
-        console.log("Hovering over edge:", params.edge);
+        //console.log("Hovering over edge:", params.edge);
     });
 
     network.value.on("blurEdge", function (params) {
-        console.log("Stopped hovering over edge:", params.edge);
+        //console.log("Stopped hovering over edge:", params.edge);
     });
 
 }
@@ -341,9 +390,10 @@ function changeNode(offsetX: number, offsetY: number) {
         selectedNodeID.value = encodeId(0, 0)
     } else {
         const decoded = decodeId(selectedNodeID.value)
-        const diag = materializedTrackerFrames.value[decoded.x].frame_diagnostic
+        const records = materializedTrackerFrames.value[decoded.x].records
+        console.log(records)
         const x = (decoded.x + offsetX + materializedTrackerFrames.value.length) % materializedTrackerFrames.value.length
-        const y = diag !== null ? (decoded.y + offsetY + diag.records.length) % diag.records.length : 0
+        const y = (decoded.y + offsetY + records.length) % records.length
         selectedNodeID.value = encodeId(x, y)
     }
     zoomTo(selectedNodeID.value)
@@ -359,7 +409,7 @@ function goToEditPage() {
 function zoomTo(nodeId: IdType) {
     nextTick(() => {
         network.value?.focus(nodeId, {
-            scale: 3.5, // Zoom in
+            scale: 2, // Zoom in
             animation: { duration: 1000, easingFunction: "easeInOutQuad" },
         });
     });
@@ -376,50 +426,25 @@ function resetZoom() {
 
 };
 
-const trackingChain = ref(null)
-const trackerDiagnostics = ref(null)
 onMounted(() => {
     const param = props.trackerID
 
-    fetchTrackerInformation(param)
+    fetchMaterializedFrames(param)
         .then(data => {
-            if (data.diagnostic) {
-                trackerDiagnostics.value = data.diagnostic
+            if (data.frames) {
+                console.log(data.frames)
+                materializedTrackerFrames.value = data.frames
             } else {
                 addSnackbar("Person not found", snackbarTypes.ERROR)
                 error.value = true
             }
         }
         ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
-
-    fetchMaterializedChain(param)
-        .then(data => {
-            if (data.frames) {
-                materializedTrackerFrames.value = data.frames
-            }
-        }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
-
-    fetchTrackingChain(param)
-        .then(data => {
-            if (data.tracking_chain) {
-                trackingChain.value = data.tracking_chain
-
-            } else {
-                addSnackbar("Chain not found", snackbarTypes.ERROR)
-                error.value = true
-            }
-        }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
-
 })
 
 </script>
 
 <style lang="scss" scoped>
-#network {
-    height: 50vh;
-}
-
-
 .navigation-buttons {
     align-items: center;
     /* Increased space between buttons */
@@ -435,7 +460,7 @@ onMounted(() => {
 }
 
 .card-title {
-    color: var(--primary)
+    color: var(--text-primary)
 }
 
 

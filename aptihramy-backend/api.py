@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from blitzbeaver.literals import ID
+from blitzbeaver.literals import ID, Element
 from fastapi.responses import FileResponse
 from database import Database
 import os
@@ -100,21 +100,33 @@ def get_tracking_chain(tracker_id: int, db: Database = Depends(get_database)):
 
 @app.get("/materialized_frames")
 def get_materialized_frames(tracker_id: int, db: Database = Depends(get_database)):
-    try:
-        materialized_chain = db.get_materialized_tracking_chain(tracker_id)
-    except:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unkwown tracking chain ${tracker_id}",
-        )
-    return MaterializedTrackingChainModel.from_materialized_tracking_chain(
+    materialized_chain = db.get_materialized_tracking_chain(tracker_id)
+    frame_idx_rec_idxs = db.get_frame_idx_record_idxs_from_materialized_chain(
         materialized_chain
+    )
+
+    # frame idx -> record idx -> raw values [value_of_feature1, value_of_feature2)
+    raw_values: dict[tuple[int, int], list[Element]] = {}
+    # frame idx -> record idx -> raw values [value_of_feature1, value_of_feature2)
+
+    normalized_values: dict[tuple[int, int], list[Element]] = {}
+    for frame_idx, record_idxs in frame_idx_rec_idxs.items():
+        for record_idx in record_idxs:
+            raw_values[(frame_idx, record_idx)] = (
+                db.get_raw_values_for_frame_idx_record_idx(frame_idx, record_idx)
+            )
+            normalized_values[(frame_idx, record_idx)] = (
+                db.get_normalized_values_for_frame_idx_record_idx(frame_idx, record_idx)
+            )
+
+    return MaterializedTrackingChainModel.from_materialized_tracking_chain(
+        materialized_chain, raw_values, normalized_values
     )
 
 
 @app.get("/record")
 def get_record_values(
-   frame_idx: int, record_idx: int, db: Database = Depends(get_database)
+    frame_idx: int, record_idx: int, db: Database = Depends(get_database)
 ):
     try:
         return RecordModel(records=db.get_record(frame_idx, record_idx))

@@ -8,7 +8,7 @@
     --background-alt: #e0e0e0f3;
     --table-hover: #a8a8a8;
     --table-alt: #e6e6e6;
-    
+
     --surface: #FFFFFF;
 
     --text-primary: #212121;
@@ -23,10 +23,13 @@
 
     --box-shadow: rgba(0, 0, 0, 0.1);
 
-    --color-red: #D32F2F;
-    --color-orange: #ffb400;
-    --color-yellow: #e9d739;
-    --color-green: #00A676;
+    --color-red: #ca1616;
+    --color-orange: rgb(199, 129, 0);
+    --color-yellow: #e0ca01;
+    --color-green: #4CAF50;
+
+    --color-matched: var(--primary);
+    --color-unmatched: #17C3B2;
 }
 
 /* Dark Mode Theme */

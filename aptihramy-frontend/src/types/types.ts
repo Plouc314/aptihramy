@@ -1,4 +1,4 @@
-import { TrackerFrameDiagnostics, TrackerFrameDiagnosticsTest, trackerID, TrackerRecordDiagnostics } from "./api_types";
+import { RecordValuesDiag, trackerID } from "./api_types";
 
 // Define the shape of a record
 export interface RecordType {
@@ -22,19 +22,21 @@ export interface DisplayPeopleProps {
 }
 
 export interface OneFrameInformationProps {
-    diagnostic: TrackerFrameDiagnosticsTest | null,
+    recordValuesDiagnostic: RecordValuesDiag | null,
     frameIdx: number,
     recordIdx: number,
+    memory: string[][] | null,
     nbColumns: number;
 }
 
-export interface CompareFrameProps {
-    frameDiag1: TrackerFrameDiagnostics
-    recordIdx1: number;
-    frameDiag2: TrackerFrameDiagnostics;
-    recordIdx2: number;
-    nbColumns: number;
+export interface CandidateRecordValues {
+    raw_value: string | number,
+    normalized_value: string | number | null,
+    memory: (string | number)[] | null
+    distances: number[] | null
+    score: number | null
 }
+
 
 export interface FilterState {
     id: number;
