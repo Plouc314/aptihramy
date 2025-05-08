@@ -60,9 +60,8 @@ export interface EditPageProps {
 }
 
 export interface EditMetricsProps {
-    mostProbableOption: string,
-    probability: number,
-    options: string[],
+    rawFeature: string
+    yearValues: Map<number, RawNormalizedValue[]>
 }
 
 export interface Snackbar {
@@ -73,3 +72,5 @@ export interface Snackbar {
 export type NodePosition = { x: number, y: number }
 
 export type FrameRecordIdx = { frameIdx: number, recordIdx: number }
+
+export type RawNormalizedValue = { rawValue: string | number, normalizedValue: string | number }

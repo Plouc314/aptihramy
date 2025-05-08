@@ -32,6 +32,23 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
                 const index = trackedFeaturesStore().getTrackedFeatureIndex(rawFeature, false);
                 return index !== -1 ? state.trackedFeatures?.pretty_features[index] : null;
             };
+        },
+
+        getTrackedFeature: (state) => {
+            return (index: number, prettyFeature: boolean = true): string | null => {
+                if (!state.trackedFeatures) return null;
+
+                if (!(0 <= index && index < state.trackedFeatures.pretty_features.length)) {
+                    return null
+                }
+
+                if (prettyFeature) {
+                    return state.trackedFeatures.pretty_features[index]
+
+                }
+                return state.trackedFeatures?.raw_features[index]
+
+            }
         }
     },
 

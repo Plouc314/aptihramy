@@ -1,17 +1,5 @@
 <template>
-    <v-container>
-        <v-list>
-            <v-list-item v-for="option in options" :key="option" @click="selectedOption = option"
-                :class="{ 'selected': selectedOption === option }">
-                <v-list-item-title>{{ option }}</v-list-item-title>
-            </v-list-item>
-        </v-list>
-        <p>Selected: {{ selectedOption }}</p>
-    </v-container>
-    <v-card>
-        <v-card-title class="title-text">{{ mostProbableOption }}</v-card-title>
-        <v-divider :thickness="3" color="info"></v-divider>
-    </v-card>
+
 </template>
 
 <script setup lang="ts">
@@ -27,7 +15,7 @@ import '../styles/button.css';
 const props = defineProps<EditMetricsProps>();
 
 
-const color = computed(() => getPanelColor(props.probability))
+//const color = computed(() => getPanelColor(props.probability))
 const options = ref(["Option 1", "Option 2", "Option 3"]);
 const selectedOption = ref(null);
 </script>
