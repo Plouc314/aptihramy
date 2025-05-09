@@ -21,11 +21,26 @@ RECORD_SCHEMA = bb.RecordSchema(
     ]
 )
 
+distance_metric_config = bb.DistanceMetricConfig(
+    metric="lv_opti",
+    caching_threshold=4,
+    use_sigmoid=False,
+    lv_substring_weight=0.5,
+)
+
+NORMALIZATION_CONFIG = bb.NormalizationConfig(
+    threshold_cluster_match=0.5,
+    min_cluster_size=2,
+    distance_metric=distance_metric_config,
+)
+
+
 db_instance = Database(
     record_schema=RECORD_SCHEMA,
     path_graph=PATH_GRAPH,
     csv_path=CSV_PATH,
     tracked_years=YEARS,
+    normalization_config=NORMALIZATION_CONFIG,
 )
 
 

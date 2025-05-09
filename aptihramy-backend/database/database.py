@@ -1,7 +1,11 @@
 import polars as pl
 import blitzbeaver as bb
 from blitzbeaver.literals import ID, Element
-from blitzbeaver import TrackerDiagnostics, MaterializedTrackingChain
+from blitzbeaver import (
+    TrackerDiagnostics,
+    MaterializedTrackingChain,
+    NormalizationConfig,
+)
 from constants import COLUMN_RAW_TO_PRETTY, COLUMN_PRETTY_TO_RAW
 import time as time
 
@@ -14,6 +18,7 @@ class Database:
         path_graph: str,
         csv_path: str,
         tracked_years: list[int],
+        normalization_config: NormalizationConfig,
     ):
         """
         Initializes the Database instance.
@@ -29,9 +34,16 @@ class Database:
         self._tracked_years = tracked_years
         self._path_graph = path_graph
         self._graph = bb.read_beaver(path_graph)
+
         self._feature_indexes = self._get_feature_indexes()
         self._feature_last_frame_value = self._build_last_frame_values()
         self._dataframes = self.get_dataframes(csv_path, tracked_years)
+        self._normalized_dfs = bb.execute_normalization(
+            config=normalization_config,
+            record_schema=record_schema,
+            tracking_graph=self._graph,
+            dataframes=self._dataframes,
+        )
 
     def _get_feature_indexes(self) -> dict[str, int]:
         """
@@ -155,29 +167,31 @@ class Database:
         """
         return self._graph.diagnostics.get_tracker(tracker_id)
 
-    def get_all_memory_from_last_frame_for_tracker(
-        self, tracker_id: ID
+    def get_memory_for_frame_of_tracker(
+        self, frame_idx: int, tracker_id: ID
     ) -> list[list[str]]:
-        """
-        Retrieves the memory stored in the last frame for a specific tracker.
-
-        Args:
-            tracker_id (ID): The tracker ID.
-
-        Returns:
-            list[list[str]]: The memory contents from the last frame of the tracker.
-        """
         tracker = self._graph.diagnostics.get_tracker(tracker_id)
-        return tracker.frames[-1].memory if tracker else []
+        return tracker.frames[frame_idx].memory if tracker else []
 
     def get_all_memory_from_last_frame_for_trackers(
         self, tracker_ids: list[ID]
     ) -> dict[ID, list[list[str]]]:
+        """
+        Retrieve the memory content from the last frame of each specified tracker.
+
+        Args:
+            tracker_ids (list[ID]): List of tracker IDs to retrieve memory from.
+
+        Returns:
+            dict[ID, list[list[str]]]: A dictionary mapping each tracker ID to the memory
+            content (as a 2D list of strings) of its last frame. If a tracker is not found,
+            an empty list is returned for that ID.
+        """
+
         ret = {}
         for tracker_id in tracker_ids:
-            ret[tracker_id] = self.get_all_memory_from_last_frame_for_tracker(
-                tracker_id
-            )
+            tracker = self._graph.diagnostics.get_tracker(tracker_id)
+            ret[tracker_id] = tracker.frames[-1].memory if tracker else []
         return ret
 
     def get_filtred_trackers(
@@ -244,24 +258,27 @@ class Database:
         pretty = [COLUMN_RAW_TO_PRETTY[col] for col in raw]
         return (raw, pretty)
 
-    def get_record(self, frame_idx: int, record_idx: int) -> list[Element]:
+    def _get_values_from_df(
+        self, dfs: list[pl.DataFrame], frame_idx: int, record_idx: int
+    ) -> list[Element]:
         """
-        Retrieves a specific record from a given frame as a dictionary.
+        Retrieves the values for a specific record index in a frame index in the provided dataframes.
 
         Args:
-            frame_idx (int): The index of the frame (i.e., year).
-            record_idx (int): The index of the record within the frame.
+            dfs (list[pl.Dataframe]): the dataframes from which the values are retrieved
+            frame_idx (int): Index of the frame (e.g., year).
+            record_idx (int): Index of the record within the frame.
 
         Returns:
-            list[Element]: A dictionary of tracked feature values for the specified record.
+            list[Element]: A list of raw values in the order defined by the feature config.
 
         Raises:
             IndexError: If the frame or record index is out of range.
         """
-        if not (0 <= frame_idx < len(self._dataframes)):
+        if not (0 <= frame_idx < len(dfs)):
             raise IndexError(f"Frame index {frame_idx} is out of range.")
 
-        frame = self._dataframes[frame_idx]
+        frame = dfs[frame_idx]
 
         if not (0 <= record_idx < len(frame)):
             raise IndexError(
@@ -269,7 +286,60 @@ class Database:
             )
 
         raw_tracked_features, _ = self.get_tracked_features()
-        return frame[record_idx].select(raw_tracked_features).to_dict(as_series=False)
+        row = frame.select(raw_tracked_features).row(record_idx)
+
+        return list(row)
+
+    def get_raw_values_for_frame_idx_record_idx(
+        self, frame_idx: int, record_idx: int
+    ) -> list[Element]:
+        """
+        Retrieves the raw values for a specific record in a frame.
+
+        Args:
+            frame_idx (int): Index of the frame (e.g., year).
+            record_idx (int): Index of the record within the frame.
+
+        Returns:
+            list[Element]: A list of raw values in the order defined by the feature config.
+
+        Raises:
+            IndexError: If the frame or record index is out of range.
+        """
+        return self._get_values_from_df(self._dataframes, frame_idx, record_idx)
+
+    def get_normalized_values_for_frame_idx_record_idx(
+        self, frame_idx: int, record_idx: int
+    ) -> list[Element]:
+        """
+        Retrieves the normalized values for a specific record in a frame.
+
+        Args:
+            frame_idx (int): Index of the frame (e.g., year).
+            record_idx (int): Index of the record within the frame.
+
+        Returns:
+            list[Element]: A list of raw values in the order defined by the feature config.
+
+        Raises:
+            IndexError: If the frame or record index is out of range.
+        """
+        return self._get_values_from_df(self._normalized_dfs, frame_idx, record_idx)
+
+    def get_frame_idx_record_idxs_from_materialized_chain(
+        self, materialized_chain: MaterializedTrackingChain
+    ) -> dict[int, list[int]]:
+        d = {}
+        for frame in materialized_chain.frames:
+            if frame.frame_diagnostic is None:
+                # Put the matching record index
+                d[frame.frame_idx] = [frame.record_idx]
+                continue
+            d[frame.frame_idx] = [
+                record.record_idx for record in frame.frame_diagnostic.records
+            ]
+
+        return d
 
     def get_tracked_years(self) -> list[int]:
         return self._tracked_years

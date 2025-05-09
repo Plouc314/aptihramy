@@ -9,7 +9,7 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
         getTrackedFeatures: (state) => state.trackedFeatures,
 
         getTrackedFeatureIndex: (state) => {
-            return (feature: string, prettyFeature: boolean = true) => {
+            return (feature: string, prettyFeature: boolean = true): number => {
                 if (!state.trackedFeatures) return -1;
 
                 let features = prettyFeature
@@ -29,7 +29,7 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
 
         getPrettyFromRaw: (state) => {
             return (rawFeature: string) => {
-                const index = trackedFeaturesStore().getTrackedFeatureIndex(rawFeature, false); 
+                const index = trackedFeaturesStore().getTrackedFeatureIndex(rawFeature, false);
                 return index !== -1 ? state.trackedFeatures?.pretty_features[index] : null;
             };
         }

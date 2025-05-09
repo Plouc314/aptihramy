@@ -1,170 +1,197 @@
 <template>
     <v-card class="card">
-        <v-row justify="space-between" no-gutters>
-            <!-- Title aligned to the left -->
-            <v-col cols="auto">
-                <v-card-title class="title-text">{{ title }}</v-card-title>
-            </v-col>
+        <!-- Table header -->
+        <v-col>
+            <v-row class="table-header">
+                <v-col cols="3" class="header-cell">Feature</v-col>
+                <v-col cols="3" class="header-cell">Raw Value</v-col>
+                <v-col cols="3" class="header-cell">Memory</v-col>
+                <v-col cols="2" class="header-cell">Normalized Value</v-col>
+                <v-col cols="1" align-start="end">
 
-            <!-- Button aligned to the right -->
-            <v-col cols="auto" class="text-center">
-                <v-btn class="ok-btn" @click="showPage" prepend-icon="mdi-book-open-page-variant">Show Page</v-btn>
-            </v-col>
-        </v-row>
-        <v-divider :thickness="3" color="info"></v-divider>
+                    <v-btn class="error-btn" @click="$emit('close')">
+                        <template v-slot:prepend>
+                            <v-icon>mdi mdi-close</v-icon>
+                        </template>
+                        Close
+                    </v-btn>
+                </v-col>
+            </v-row>
 
-        <div class="content">
-            <v-card-item>
-                <v-row>
-                    <v-col v-for="([prettyFeature, value], index) in frameInformation" :key="index"
-                        :cols="12 / props.nbColumns" class="data-col">
-                        <span class="data-title">{{ prettyFeature }}</span>
-                        <span class="data-value">{{ value }}</span>
+            <!-- Table body -->
+            <div class="table-body">
+                <v-row v-for="([feature, value], featureIndex) in frameInformation" :key="featureIndex"
+                    class="table-row">
+                    <v-col cols="3" class="cell feature-name">{{ feature }}</v-col>
+                    <v-col cols="3" class="cell">{{ value.raw_value ?? '—' }}</v-col>
+                    <v-col cols="3" class="cell">
+                        <span v-if="value.memory && value.memory.length">
+                            <span v-for="(mem, memIndex) in value.memory" :key="memIndex" class="memory-item">
+                                <v-tooltip :text="getToolTipText(feature, value.distances)">
+                                    <template v-slot:activator="{ props }">
+                                        <v-chip v-bind="props" variant="flat" class="chip"
+                                            :style="chipColor(value.distances[featureIndex])">
+                                            {{ mem }}
+                                        </v-chip>
+                                    </template>
+                                </v-tooltip>
+                            </span>
+                        </span>
+                        <span v-else>—</span>
                     </v-col>
+                    <v-col cols="3" class="cell">{{ value.normalized_value ?? '—' }}</v-col>
                 </v-row>
-            </v-card-item>
-        </div>
+            </div>
+        </v-col>
     </v-card>
+
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { OneFrameInformationProps } from '../types/types';
+import { ref, computed, onMounted, StyleValue } from "vue";
+import { CandidateRecordValues, OneFrameInformationProps } from '../types/types';
 import '../styles/theme.css';
 import '../styles/button.css';
-import { fetchRecordValues } from '@/core/api';
+import { fetchPersonValues } from '@/core/api';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { trackedYearsStore } from "@/core/stores/trackedYears";
-import { TrackerDiagnostics, TrackerRecordDiagnostics } from "@/types/api_types";
+import { getEdgeColor } from "@/core/utils";
 
 
 const props = defineProps<OneFrameInformationProps>();
-const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
-const recordDiag = computed<TrackerRecordDiagnostics | null>(() => {
-    if(props.diagnostic == null){
-        return null
-    }
 
-    return props.diagnostic.records.find(r => r.record_idx == props.recordIdx)
-})
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
+function getToolTipText(pretty_feature: string, distances: number[]): string {
+    const feature_index = tfStore.getTrackedFeatureIndex(pretty_feature, true)
+    return distances[feature_index] == null ? "No information" : `Distance to raw calue: ${distances[feature_index].toFixed(3)}`
+}
+
+function chipColor(score: number): StyleValue {
+    return {
+        "background-color": getEdgeColor(score),
+    }
+}
+
 const error = ref(false)
-const records = ref<Map<string, (string | number)[]>>(null)
 const tfStore = trackedFeaturesStore()
 const tyStore = trackedYearsStore()
-
-const title = computed(() => {
-    if (records.value == null) {
-        return ""
-    }
-    if (tfStore.getTrackedFeatures.raw_features.includes("chef_prenom_norm") && tfStore.getTrackedFeatures.raw_features.includes("chef_nom_norm")) {
-        return `${records.value["chef_prenom_norm"]} ${records.value["chef_nom_norm"]}`
-    }
-    return ""
-})
 
 function showPage() {
     console.log("TO BE IMPLEMENTED")
 }
 
-function updateValues() {
-    fetchRecordValues(props.frameIdx, props.recordIdx).then(data => {
-        if (data.records) {
-            records.value = data.records
-        } else {
-            addSnackbar("Person not found", snackbarTypes.ERROR)
-            error.value = true
-        }
-    }
-    )
-}
-
-
-watch(() => [props.frameIdx, props.recordIdx], _ => {
-    updateValues()
-})
 
 const frameInformation = computed(() => {
-    const a = new Map<string, string | number>()
-    if (!records.value) {
-        return a
-    }
-    for (const rawFeature in records.value) {
-        const values = records.value[rawFeature]
-        if (values.length > 0) {
-            a.set(tfStore.getPrettyFromRaw(rawFeature), values[0])
-        } else {
-            a.set(tfStore.getPrettyFromRaw(rawFeature), "")
+    const all_feature_values = new Map<string, CandidateRecordValues>()
+    const trackedFeatures = tfStore.getTrackedFeatures.pretty_features
+
+
+    for (let i = 0; i < trackedFeatures.length; i++) {
+        const diag = props.recordValuesDiagnostic
+
+
+        const mem = props.memory == null ? null : props.memory[i]
+        const test = diag.record_diagnostics == null ? null : diag.record_diagnostics.record_score
+        const r_distances = diag.record_diagnostics == null ? null : diag.record_diagnostics.distances
+        const values: CandidateRecordValues = {
+            raw_value: diag.record_raw_values[i],
+            normalized_value: diag.record_normalized_values[i],
+            memory: mem,
+            distances: r_distances,
+            score: test
         }
+
+        const feature = trackedFeatures[i]
+        all_feature_values.set(feature, values)
     }
-    a.set("Annee", tyStore.getYearFromFrameIdx(props.frameIdx))
-    a.set("Index dans le fichier", props.recordIdx + 2)
-    return a
+
+
+    all_feature_values.set("Annee", { raw_value: tyStore.getYearFromFrameIdx(props.frameIdx), normalized_value: null, memory: null, distances: null, score: null })
+    all_feature_values.set("Index dans le fichier", { raw_value: props.recordIdx + 2, normalized_value: null, memory: null, distances: null, score: null })
+    return all_feature_values
 
 })
 
-onMounted(() => {
-    updateValues()
+tfStore.fetchTrackedFeatures()
+tyStore.fetchTrackedYears()
 
-})
 </script>
 
 
-
-<style>
+<style scoped>
 .card {
     display: flex;
     flex-direction: column;
-    max-height: 50vh;
     border-radius: 12px;
     background-color: var(--background);
     color: var(--text-primary);
     box-shadow: 0px 4px 10px var(--box-shadow);
 }
 
-.title-text {
-    font-size: 20px;
+
+.chip {
+    color: var(--text-primary);
+    font-weight: 450;
+}
+
+.table-body {
+    margin-top: 15px;
+    max-height: 35vh;
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 5px;
+}
+
+
+.table-row {
+    border-bottom: 1px solid var(--box-shadow);
+}
+
+.cell {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.feature-name {
     font-weight: bold;
-    text-align: left;
+}
+
+.memory-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.memory-item {
+    cursor: pointer;
+    /* Indicates that the memory item is clickable */
+    padding: 2px 0;
+}
+
+.memory-item:hover {
+    background-color: var(--highlight-color, #f0f0f0);
+    /* Highlight background on hover */
+    color: var(--primary, #007bff);
+    /* Change text color on hover */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    /* Smooth transition for color change */
+}
+
+.header-cell {
+    font-size: 16px;
+    font-weight: bold;
     color: var(--primary);
     text-transform: uppercase;
 }
 
-
-.content {
-    flex-grow: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-bottom: 10px;
-    max-height: 35vh;
-
-}
-
-.data-col {
-    display: flex;
-    flex-direction: column;
-    padding: 8px 25px;
-    border-bottom: 1px solid var(--box-shadow);
-
-    &:last-child {
-        border-bottom: none;
-        margin-bottom: 1px;
-    }
-}
-
-.data-value {
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: 16px;
-}
-
-.data-title {
+.table-header {
     font-weight: bold;
+    background-color: var(--background-secondary);
     color: var(--text-secondary);
-    font-size: 14px;
+    border-bottom: 2px solid var(--primary);
     text-transform: uppercase;
-
+    padding: 4px 0;
 }
 </style>

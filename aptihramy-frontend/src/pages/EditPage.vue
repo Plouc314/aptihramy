@@ -1,4 +1,5 @@
 <template>
+    <!--
     <v-col>
         <TopBar title="Edit Page"></TopBar>
         <v-row v-if="mostProbable && featureValues && !error">
@@ -11,7 +12,6 @@
 
                     <v-divider :thickness="3" color="info"></v-divider>
 
-                    <!-- Unique v-model for each card using selectedValues object -->
                     <v-select v-model="selectedValues[rawFeature]" :items="values" label="Select an option"></v-select>
 
                 </v-card>
@@ -29,120 +29,121 @@
             </v-card-text>
         </v-card>
     </div>
+   -->
 
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
-import { CLEANED, TEST_DATA } from "@/config/test_data";
-import { COLUMNS_RAW, COLUMN_RAW_TO_PRETTY } from "@/config/constants";
-import { useRoute, useRouter } from 'vue-router';
-import TopBar from "@/components/TopBars/TopBar.vue";
-import { EditPageProps } from "../types/types";
-import { fetchRecordValues, fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
-import { ChainNode, FeatureValues, TrackerDiagnostics } from "@/types/api_types";
-import { useSnackbarQueue } from "@/core/snackbarQueue";
-import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
+// import { ref, reactive, computed, onMounted, watch } from "vue";
+// import { CLEANED, TEST_DATA } from "@/config/test_data";
+// import { COLUMNS_RAW, COLUMN_RAW_TO_PRETTY } from "@/config/constants";
+// import { useRoute, useRouter } from 'vue-router';
+// import TopBar from "@/components/TopBars/TopBar.vue";
+// import { EditPageProps } from "../types/types";
+// import { fetchRecordValues, fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
+// import { ChainNode, FeatureValues, TrackerDiagnostics } from "@/types/api_types";
+// import { useSnackbarQueue } from "@/core/snackbarQueue";
+// import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
 
-const props = defineProps<EditPageProps>();
+// const props = defineProps<EditPageProps>();
 
-const router = useRouter();
-const route = useRoute();
-const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
-const error = ref(false)
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+// const router = useRouter();
+// const route = useRoute();
+// const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
+// const error = ref(false)
+// const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
-const tfStore = trackedFeaturesStore()
-const selectedValues = ref<Map<string, string | number>>(new Map())
-
-
-watch(tfStore.getTrackedFeatures, trackedFeaturesStore => {
-    if (trackedFeaturesStore) {
-        tfStore.getTrackedFeatures.pretty_features.forEach(f => selectedValues.value.set(f, ""))
-    }
-
-})
-
-async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<number, FeatureValues>> {
-    const resultsMap = new Map<number, FeatureValues>();
-    const promises = newTrackingChain.map(async ({ frame_idx, record_idx }) => {
-        try {
-            const data = await fetchRecordValues(frame_idx, record_idx);
-            const records = data.records
-            if (records) {
-                resultsMap.set(frame_idx, records)
-            }
-        } catch (error) {
-            console.error(`Failed to fetch for frame_idx: ${frame_idx}, record_idx: ${record_idx}`, error);
-        }
-    });
-
-    await Promise.allSettled(promises);
-    return resultsMap;
-}
-
-const featureValues = ref<FeatureValues>(null)
-const mostProbable = computed<Map<string, string | number>>(() => {
-    if (!trackerDiagnostics.value || !tfStore) {
-        return null
-    }
-
-    const m = new Map<string, string | number>()
-    trackerDiagnostics.value.frames[trackerDiagnostics.value.frames.length - 1].memory.forEach(
-        (values, index) => m.set(tfStore.getTrackedFeatures.raw_features[index], values[0])
-    )
-
-    return m
-}
-)
-
-watch(trackerDiagnostics, newtrackerDiagnostics => {
-    if (!newtrackerDiagnostics) {
-        return []
-    }
-
-    const nodes: ChainNode[] = []
-    for (const a of newtrackerDiagnostics.frames) {
-        for (const b of a.records) {
-            nodes.push({ frame_idx: a.frame_idx, record_idx: b.record_idx })
-        }
-    }
-
-    const temp: FeatureValues = new Map()
-    fetchAllRecords(nodes).then(data => {
-        data.forEach((recordValues, frameidx) => {
-            for (const feature in recordValues) {
-                const values = recordValues[feature]
-                const currentValues = temp.get(feature)
-
-                if (currentValues) {
-                    currentValues.push(...values)
-                    const currentValuesSet = new Set(currentValues.filter(a => a != null))
-                    temp.set(feature, Array.from(currentValuesSet))
-                } else {
-                    temp.set(feature, values)
-
-                }
-            }
-        })
-        featureValues.value = temp
-    })
-})
+// const tfStore = trackedFeaturesStore()
+// const selectedValues = ref<Map<string, string | number>>(new Map())
 
 
-onMounted(() => {
-    const param = props.trackerID
-    fetchTrackerInformation(param)
-        .then(data => {
-            if (data.diagnostic) {
-                trackerDiagnostics.value = data.diagnostic
-            } else {
-                addSnackbar("Person not found", snackbarTypes.ERROR)
-                error.value = true
-            }
-        }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+// watch(tfStore.getTrackedFeatures, trackedFeaturesStore => {
+//     if (trackedFeaturesStore) {
+//         tfStore.getTrackedFeatures.pretty_features.forEach(f => selectedValues.value.set(f, ""))
+//     }
 
-})
+// })
+
+// async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<number, FeatureValues>> {
+//     const resultsMap = new Map<number, FeatureValues>();
+//     const promises = newTrackingChain.map(async ({ frame_idx, record_idx }) => {
+//         try {
+//             const data = await fetchRecordValues(frame_idx, record_idx);
+//             const records = data.records
+//             if (records) {
+//                 resultsMap.set(frame_idx, records)
+//             }
+//         } catch (error) {
+//             console.error(`Failed to fetch for frame_idx: ${frame_idx}, record_idx: ${record_idx}`, error);
+//         }
+//     });
+
+//     await Promise.allSettled(promises);
+//     return resultsMap;
+// }
+
+// const featureValues = ref<FeatureValues>(null)
+// const mostProbable = computed<Map<string, string | number>>(() => {
+//     if (!trackerDiagnostics.value || !tfStore) {
+//         return null
+//     }
+
+//     const m = new Map<string, string | number>()
+//     trackerDiagnostics.value.frames[trackerDiagnostics.value.frames.length - 1].memory.forEach(
+//         (values, index) => m.set(tfStore.getTrackedFeatures.raw_features[index], values[0])
+//     )
+
+//     return m
+// }
+// )
+
+// watch(trackerDiagnostics, newtrackerDiagnostics => {
+//     if (!newtrackerDiagnostics) {
+//         return []
+//     }
+
+//     const nodes: ChainNode[] = []
+//     for (const a of newtrackerDiagnostics.frames) {
+//         for (const b of a.records) {
+//             nodes.push({ frame_idx: a.frame_idx, record_idx: b.record_idx })
+//         }
+//     }
+
+//     const temp: FeatureValues = new Map()
+//     fetchAllRecords(nodes).then(data => {
+//         data.forEach((recordValues, frameidx) => {
+//             for (const feature in recordValues) {
+//                 const values = recordValues[feature]
+//                 const currentValues = temp.get(feature)
+
+//                 if (currentValues) {
+//                     currentValues.push(...values)
+//                     const currentValuesSet = new Set(currentValues.filter(a => a != null))
+//                     temp.set(feature, Array.from(currentValuesSet))
+//                 } else {
+//                     temp.set(feature, values)
+
+//                 }
+//             }
+//         })
+//         featureValues.value = temp
+//     })
+// })
+
+
+// onMounted(() => {
+//     const param = props.trackerID
+//     fetchTrackerInformation(param)
+//         .then(data => {
+//             if (data.diagnostic) {
+//                 trackerDiagnostics.value = data.diagnostic
+//             } else {
+//                 addSnackbar("Person not found", snackbarTypes.ERROR)
+//                 error.value = true
+//             }
+//         }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+
+// })
 </script>
 
 <style scoped>
