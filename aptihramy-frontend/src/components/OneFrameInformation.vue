@@ -114,6 +114,9 @@ const frameInformation = computed(() => {
 
 })
 
+tfStore.fetchTrackedFeatures()
+tyStore.fetchTrackedYears()
+
 </script>
 
 
