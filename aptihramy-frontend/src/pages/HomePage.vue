@@ -27,9 +27,8 @@ import { ref, computed, watch } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
 import { FilterRequest, } from '@/types/api_types';
-import '../styles/theme.css';
-import '../styles/button.css';
-import { fetchFilteredTrackers, fetchMaterializedChain } from '@/core/api';
+import '../styles/main.css';
+import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 

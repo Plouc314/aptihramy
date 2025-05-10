@@ -60,8 +60,14 @@ export interface EditPageProps {
 }
 
 export interface EditMetricsProps {
-    rawFeature: string
+    prettyFeature: string
     yearValues: Map<number, RawNormalizedValue[]>
+    updatedValues: Map<number, string | number> | undefined
+}
+
+export interface EditMetricsEmits {
+    prettyFeature: string
+    updatedValues: Map<number, string | number>
 }
 
 export interface Snackbar {
@@ -74,3 +80,5 @@ export type NodePosition = { x: number, y: number }
 export type FrameRecordIdx = { frameIdx: number, recordIdx: number }
 
 export type RawNormalizedValue = { rawValue: string | number, normalizedValue: string | number }
+
+

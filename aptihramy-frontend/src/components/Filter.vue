@@ -15,8 +15,7 @@
 <script setup lang="ts">
 
 import { ref, computed, watch, onMounted } from 'vue';
-import "../styles/theme.css";
-import "../styles/button.css";
+import "../styles/main.css";
 import { FilterProps, FilterState } from '../types/types';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 

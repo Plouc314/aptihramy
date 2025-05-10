@@ -1,24 +1,34 @@
 <template>
-    <!--
-    <v-col>
+    <v-col v-if="featureYearValues">
         <TopBar title="Edit Page"></TopBar>
         <v-expansion-panels v-model="expandedFeatureIndexes" multiple>
-            <v-expansion-panel v-for="(prettyFeature, featureIndex) in allFeatures" :key="featureIndex"
-                :title="prettyFeature">
+            <v-expansion-panel v-for="(prettyFeature, featureIndex) in allFeatures" :key="featureIndex">
+                <v-expansion-panel-title class="expansion-title">
+                    {{ prettyFeature }}
+                </v-expansion-panel-title>
                 <v-expansion-panel-text>
-                    <EditMetrics :raw-feature="prettyFeature" :year-values="featureYearValues.get(prettyFeature)">
+                    <EditMetrics :pretty-feature="prettyFeature" :year-values="featureYearValues.get(prettyFeature)"
+                        :updated-values="updatedValues.get(prettyFeature)" @update-values="updateValues">
                     </EditMetrics>
                 </v-expansion-panel-text>
             </v-expansion-panel>
         </v-expansion-panels>
     </v-col>
-    {{ featureYearValues }}
+
+    <v-progress-circular v-if="!featureYearValues && !error" indeterminate :size="80" :width="10"
+        class="loading-spinner"></v-progress-circular>
+    <div v-if="error" class="error-container">
+        <v-card class="error-card">
+            <v-card-text class="error-content">
+                <v-icon class="error-icon">mdi-alert-circle</v-icon>
+                <span class="error-text">Person not found</span>
+            </v-card-text>
+        </v-card>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
-import { COLUMNS_RAW, COLUMN_RAW_TO_PRETTY } from "@/config/constants";
-import { useRoute, useRouter } from 'vue-router';
+import { ref, computed, onMounted } from "vue";
 import TopBar from "@/components/TopBars/TopBar.vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import { EditPageProps, RawNormalizedValue } from "../types/types";
@@ -27,6 +37,8 @@ import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import { fetchMaterializedFrames } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api_types";
 import { trackedYearsStore } from "@/core/stores/trackedYears";
+import '../styles/main.css';
+
 
 const props = defineProps<EditPageProps>();
 const error = ref(false)
@@ -39,26 +51,24 @@ tyStore.fetchTrackedYears()
 
 const allFeatures = computed(() => tfStore.getTrackedFeatures ? tfStore.getTrackedFeatures.pretty_features : null)
 const expandedFeatureIndexes = ref([])
+const frames = ref<MaterializedTrackerFrame[] | null>(null)
 
-// const expandedRawFeatures = computed(() =>
-//     expandedIndex.value.map(featureIndex => tfStore.getTrackedFeature(featureIndex, false))
-// )
+// pretty feature -> year -> updated value
+const updatedValues = ref(new Map<string, Map<number, string | number>>())
 
-
-function getFeatureYearValues(frames: MaterializedTrackerFrame[] | null): Map<string, Map<number, RawNormalizedValue[]>> {
-    if (frames == null) {
-        return new Map()
+const featureYearValues = computed(() => {
+    if (frames.value == null || allFeatures.value == null) {
+        return null
     }
-
     // feature -> Year -> values
     const featureYearValues = new Map<string, Map<number, RawNormalizedValue[]>>()
 
-    for (let featureIndex = 0; featureIndex < expandedFeatureIndexes.value.length; featureIndex++) {
+    for (let featureIndex = 0; featureIndex < allFeatures.value.length; featureIndex++) {
         const prettyFeature = tfStore.getTrackedFeature(featureIndex)
 
         const yearValues = new Map<number, RawNormalizedValue[]>()
-        for (let i = 0; i < frames.length; i++) {
-            const frame = frames[i]
+        for (let i = 0; i < frames.value.length; i++) {
+            const frame = frames.value[i]
 
             if (frame.matching_record_idx == null) {
                 continue
@@ -71,11 +81,17 @@ function getFeatureYearValues(frames: MaterializedTrackerFrame[] | null): Map<st
         featureYearValues.set(prettyFeature, yearValues)
 
     }
-    console.log("ici")
-    console.log(featureYearValues)
+
     return featureYearValues
+
+})
+
+
+function updateValues(prettyFeature: string, yearValues: Map<number, string | number>) {
+    //console.log(yearValues)
+    updatedValues.value.set(prettyFeature, yearValues)
+    console.log(updatedValues.value.get(prettyFeature))
 }
-const featureYearValues = ref(null)
 
 onMounted(() => {
     const param = props.trackerID
@@ -83,9 +99,8 @@ onMounted(() => {
     fetchMaterializedFrames(param)
         .then(data => {
             if (data.frames) {
-                featureYearValues.value = getFeatureYearValues(data.frames)
-                console.log("oui")
-                console.log(featureYearValues.value)
+                frames.value = data.frames
+
 
             } else {
                 addSnackbar("Person not found", snackbarTypes.ERROR)
@@ -108,20 +123,10 @@ onMounted(() => {
     color: var(--primary)
 }
 
-.error-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    /* Full viewport height */
-    width: 100%;
-    /* Full width */
-}
-
-.loading-spinner {
-    position: fixed;
-    /* Ensures it stays in the middle of the viewport */
-    top: 50%;
-    left: 50%;
+.expansion-title {
+    font-size: 1.25rem;
+    /* or any size you want */
+    font-weight: 500;
+    color: var(--text-color);
 }
 </style>

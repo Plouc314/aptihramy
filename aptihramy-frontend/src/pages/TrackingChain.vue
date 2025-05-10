@@ -85,9 +85,7 @@ import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "
 import TopBar from '@/components/TopBars/TopBar.vue';
 import { FrameRecordIdx, NodePosition, TrackinChainProps } from "../types/types"
 import { Network, Edge, Node, IdType } from 'vis-network';
-import '../styles/theme.css';
-import '../styles/button.css';
-import '../styles/error_card.css';
+import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
@@ -206,7 +204,7 @@ function buildEdge(from: string, to: string, color: string, label: string, dashe
         width: 2,
         label: label,
         font: {
-            size: 14, // Adjust size for readability
+            size: 14, 
             color: "#007bff",
             align: "top",
             bold: "true",

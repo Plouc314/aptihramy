@@ -50,8 +50,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, StyleValue } from "vue";
 import { CandidateRecordValues, OneFrameInformationProps } from '../types/types';
-import '../styles/theme.css';
-import '../styles/button.css';
+import '../styles/main.css';
 import { fetchPersonValues } from '@/core/api';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';

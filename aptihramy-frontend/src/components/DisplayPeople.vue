@@ -12,17 +12,13 @@
             </v-col>
         </v-row>
         <div class="table-body">
-            <template v-for="([ID, record], index) of personToDisplay" :key="ID">
-                <v-row :class="['table-data-row', { 'table-alternate-data-row': index % 2 === 0 }]"
-                    @click="handleRowClick(ID)">
-                    <v-col class="table-data-text" v-for="(value, index) in record" :key="index">
-                        {{ value }}
-                    </v-col>
-                </v-row>
-            </template>
+            <v-row v-for="([ID, record], index) of personToDisplay" :key="ID" class="table-data-row"
+                @click="handleRowClick(ID)">
+                <v-col class="table-data-text" v-for="(value, index) in record" :key="index">
+                    {{ value }}
+                </v-col>
+            </v-row>
         </div>
-
-
     </v-card>
 </template>
 
@@ -30,8 +26,7 @@
 
 import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import '../styles/table.css';
-import '../styles/theme.css';
+import '../styles/main.css';
 import { DisplayPeopleProps } from '../types/types';
 import { trackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { trackerID } from '../types/api_types';
@@ -65,7 +60,7 @@ const handleRowClick = (id: trackerID): void => {
 .display-card {
     border-radius: 8px;
     box-shadow: 0 4px 8px "box-shadow";
-    background-color: "background";
+    background-color: var(--background);
     display: flex;
     flex-direction: column;
     max-height: 80vh;
