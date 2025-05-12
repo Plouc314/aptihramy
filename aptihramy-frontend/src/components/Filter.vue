@@ -1,9 +1,9 @@
 <template>
     <v-row class="filter-row">
-        <v-autocomplete v-model="selectedColumn" :items="props.remainingColumns" label="Select filter" clearable
+        <v-autocomplete v-model="selectedFeature" :items="props.remainingFeatures" label="Select filter" clearable
             class="filter-select"></v-autocomplete>
 
-        <v-combobox v-model="rowInput" :items="props.suggestions" label="Search..." clearable
+        <v-combobox v-model="input" :items="props.suggestions" label="Search..." clearable
             class="filter-select"></v-combobox>
 
         <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg" @click="deleteFilter">
@@ -16,7 +16,7 @@
 
 import { ref, computed, watch, onMounted } from 'vue';
 import "../styles/main.css";
-import { FilterProps, FilterState } from '../types/types';
+import { FilterEmits, FilterProps, FilterState } from '../types/types';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 
 // Define props with types
@@ -24,29 +24,26 @@ const props = defineProps<FilterProps>();
 const tfStore = trackedFeaturesStore()
 const tracked_features = computed(() => tfStore.getTrackedFeatures)
 
-const emit = defineEmits<{
-    (event: 'edit-filter', payload: FilterState): void;
-    (event: 'delete-filter', payload: FilterState): void;
-}>();
+const emit = defineEmits<FilterEmits>();
 
-// Initialize selectedColumn as a string or null and selectedRows as an array of strings
-const selectedColumn = ref<string | null>(null);
-const rowInput = ref<string>("")
+// Initialize selectedFeature as a string or null and selectedRows as an array of strings
+const selectedFeature = ref<string | null>(props.feature);
+const input = ref<string>(props.value)
 
-// Watch for column change and reset selectedRows
-watch(selectedColumn, () => {
-    rowInput.value = "";
-    const a: FilterState = { id: props.id, column: selectedColumn.value, rowInput: "" }
+// Watch for feature change and reset selectedRows
+watch(selectedFeature, () => {
+    input.value = "";
+    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: "" }
     emit('edit-filter', a);
 });
 
-watch(rowInput, (input) => {
-    const a: FilterState = { id: props.id, column: selectedColumn.value, rowInput: input }
+watch(input, (input) => {
+    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: input }
     emit('edit-filter', a);
 });
 
 function deleteFilter() {
-    const a: FilterState = { id: props.id, column: selectedColumn.value, rowInput: "" }
+    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: "" }
     emit('delete-filter', a)
 }
 

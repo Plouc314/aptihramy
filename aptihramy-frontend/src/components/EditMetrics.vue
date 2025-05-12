@@ -61,16 +61,22 @@
             <v-col>
                 <v-autocomplete v-model="selectedValues[year]" :items="allValues" label="Select filter" clearable
                     class="filter-select" :class="{ 'animate-pulse': animatedYears.has(year) }" />
-                <!--(selectedValues[year] == valueToReplace || valueToReplace == 'All') &&-->
+
             </v-col>
 
         </v-row>
 
     </row>
-    <v-row class="mt-4">
+    <v-row class="mt-4" justify="space-between">
         <v-col cols="2">
             <v-btn class="error-btn" variant="tonal" @click="resetValues" block>
                 Reset to default values
+            </v-btn>
+        </v-col>
+
+        <v-col cols="2">
+            <v-btn class="ok-btn" variant="tonal" @click="save" block>
+                Save
             </v-btn>
         </v-col>
     </v-row>
@@ -82,15 +88,15 @@
 <script setup lang="ts">
 import { ref, computed, reactive, StyleValue } from "vue";
 import { getColorForMatch } from "@/core/utils";
-import { EditMetricsProps } from "../types/types";
+import { EditMetricsProps, EditMetricsEmit } from "../types/types";
 import '../styles/main.css';
+import { useSnackbarQueue } from "@/core/snackbarQueue";
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 
 const isReplaceClicked = ref(false)
 const props = defineProps<EditMetricsProps>();
-const emit = defineEmits<{
-    (e: 'update-values', payload: string, a: Map<number, string | number>): void
-}>()
+const emit = defineEmits<EditMetricsEmit>()
 
 const selectedValues = reactive<Record<number, string | number>>({})
 const originalYearModel = {}
@@ -154,10 +160,12 @@ function replaceValue() {
         isReplaceClicked.value = false
         animatedYears.value.clear()
     }, 1500)
+}
 
+function save() {
     const m = new Map()
     Object.entries(selectedValues).forEach(([year, updatedValue]) => m.set(year, updatedValue))
-
+    addSnackbar(`Feature: ${props.prettyFeature} saved`, snackbarTypes.INFO)
     emit("update-values", props.prettyFeature, m)
 }
 

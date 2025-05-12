@@ -1,6 +1,6 @@
 <template>
     <v-col v-if="featureYearValues">
-        <TopBar title="Edit Page"></TopBar>
+        <TopBarEditPage title="Edit Page" :save="saveSelected"></TopBarEditPage>
         <v-expansion-panels v-model="expandedFeatureIndexes" multiple>
             <v-expansion-panel v-for="(prettyFeature, featureIndex) in allFeatures" :key="featureIndex">
                 <v-expansion-panel-title class="expansion-title">
@@ -29,7 +29,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import TopBar from "@/components/TopBars/TopBar.vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import { EditPageProps, RawNormalizedValue } from "../types/types";
 import { useSnackbarQueue } from "@/core/snackbarQueue";
@@ -38,6 +37,7 @@ import { fetchMaterializedFrames } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api_types";
 import { trackedYearsStore } from "@/core/stores/trackedYears";
 import '../styles/main.css';
+import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
 
 
 const props = defineProps<EditPageProps>();
@@ -88,9 +88,11 @@ const featureYearValues = computed(() => {
 
 
 function updateValues(prettyFeature: string, yearValues: Map<number, string | number>) {
-    //console.log(yearValues)
     updatedValues.value.set(prettyFeature, yearValues)
-    console.log(updatedValues.value.get(prettyFeature))
+}
+
+function saveSelected() {
+    addSnackbar("To be implemented", snackbarTypes.INFO)
 }
 
 onMounted(() => {

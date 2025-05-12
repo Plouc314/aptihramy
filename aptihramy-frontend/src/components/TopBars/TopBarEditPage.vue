@@ -5,19 +5,13 @@
         </template>
 
         <v-app-bar-title class="top-bar-title">{{ title }}</v-app-bar-title>
-        <v-btn v-if="props.resetZoom" color="secondary" size="large" class="mx-2" @click="props.resetZoom">
+        <v-btn color="secondary" size="large" class="mx-2" @click="props.save">
             <template v-slot:prepend>
-                <v-icon>mdi mdi-restore</v-icon>
+                <v-icon>mdi mdi-content-save</v-icon>
             </template>
-            Reset zoom
+            Save
         </v-btn>
 
-        <v-btn v-if="props.goToEditPage" color="secondary" size="large" class="mx-2" @click="props.goToEditPage">
-            <template v-slot:prepend>
-                <v-icon>mdi mdi-pencil</v-icon>
-            </template>
-            Edit page
-        </v-btn>
         <v-btn color="secondary" size="large" class="mx-2" @click="goToHomePage">
             <template v-slot:prepend>
                 <v-icon>mdi mdi-home</v-icon>
@@ -29,12 +23,12 @@
 
 <script setup lang="ts">
 import "../../styles/theme.css"
-import { TopBarProps } from "../../types/types"
+import { TopBarEditPageProps } from "../../types/types"
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const props = defineProps<TopBarProps>();
+const props = defineProps<TopBarEditPageProps>();
 
 function goToHomePage() {
     router.push({ name: 'HomePage' });
