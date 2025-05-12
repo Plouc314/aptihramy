@@ -2,8 +2,8 @@
     <v-card class="mb-6 pa-4 elevation-2 rounded-lg">
         <v-row align="center" class="align-center">
             <v-col cols="4">
-                <v-autocomplete v-model="valueToReplace" :items="allValuesToReplace" label="Value to replace" clearable
-                    dense />
+                <v-combobox v-model="valueToReplace" :items="allValuesToReplace" label="Value to replace" clearable
+                    dense></v-combobox>
             </v-col>
 
             <v-col cols="1" class="text-center">
@@ -11,7 +11,8 @@
             </v-col>
 
             <v-col cols="4">
-                <v-autocomplete v-model="replacementValue" :items="allValues" label="Replace with" dense clearable />
+                <v-combobox v-model="replacementValue" :items="allValues" label="Replace with" clearable
+                    dense></v-combobox>
             </v-col>
 
             <v-col cols="3">
@@ -28,45 +29,44 @@
         <v-col class="table-header-col">Selected</v-col>
     </v-row>
 
-    <row class="table-body">
-        <v-row v-for="([year, values], yearIndex) in yearValues" :key="yearIndex" v-if="yearValues"
-            class="table-data-row">
-            <v-col>
-                {{ year }}
-            </v-col>
 
-            <v-col>
-                <v-chip class="ma-1">
-                    {{ originalYearModel[year] }}
+    <v-row v-for="([year, values], yearIndex) in yearValues" :key="yearIndex" v-if="yearValues" class="table-data-row">
+        <v-col>
+            {{ year }}
+        </v-col>
+
+        <v-col>
+            <v-chip class="ma-1">
+                {{ originalYearModel[year] }}
+            </v-chip>
+        </v-col>
+        <v-col cols="3">
+            <v-chip-group column>
+                <v-chip v-for="(value, index) in yearCandidateValues.get(year)" :key="index" class="ma-1">
+                    {{ value }}
                 </v-chip>
-            </v-col>
-            <v-col cols="3">
-                <v-chip-group column>
-                    <v-chip v-for="(value, index) in yearCandidateValues.get(year)" :key="index" class="ma-1">
-                        {{ value }}
+            </v-chip-group>
+        </v-col>
+        <v-col>
+            <v-tooltip :text="getToolTipText(getNormalizedValue(year) == selectedValues[year])">
+                <template v-slot:activator="{ props }">
+                    <v-chip v-bind="props" :style="chipColor(getNormalizedValue(year) == selectedValues[year])"
+                        variant="flat" class="chip">
+                        {{ getNormalizedValue(year) }}
                     </v-chip>
-                </v-chip-group>
-            </v-col>
-            <v-col>
-                <v-tooltip :text="getToolTipText(getNormalizedValue(year) == selectedValues[year])">
-                    <template v-slot:activator="{ props }">
-                        <v-chip v-bind="props" :style="chipColor(getNormalizedValue(year) == selectedValues[year])"
-                            variant="flat" class="chip">
-                            {{ getNormalizedValue(year) }}
-                        </v-chip>
-                    </template>
-                </v-tooltip>
-            </v-col>
+                </template>
+            </v-tooltip>
+        </v-col>
 
-            <v-col>
-                <v-autocomplete v-model="selectedValues[year]" :items="allValues" label="Select filter" clearable
-                    class="filter-select" :class="{ 'animate-pulse': animatedYears.has(year) }" />
+        <v-col>
+            <v-combobox v-model="selectedValues[year]" :items="allValues" label="Select value" clearable dense
+                :class="{ 'animate-pulse': animatedYears.has(year) }"></v-combobox>
 
-            </v-col>
+        </v-col>
 
-        </v-row>
+    </v-row>
 
-    </row>
+
     <v-row class="mt-4" justify="space-between">
         <v-col cols="2">
             <v-btn class="error-btn" variant="tonal" @click="resetValues" block>
@@ -86,9 +86,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, StyleValue } from "vue";
+import { ref, computed, reactive, StyleValue, onMounted } from "vue";
 import { getColorForMatch } from "@/core/utils";
-import { EditMetricsProps, EditMetricsEmit } from "../types/types";
+import { EditMetricsProps, EditMetricsEmit, RawNormalizedValue } from "../types/types";
 import '../styles/main.css';
 import { useSnackbarQueue } from "@/core/snackbarQueue";
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
@@ -169,7 +169,9 @@ function save() {
     emit("update-values", props.prettyFeature, m)
 }
 
-const yearValues = computed(() => props.yearValues)
+const yearValues = ref<Map<number, RawNormalizedValue[]> | null>(null)
+const allValues = ref<(number | string)[]>([])
+
 
 const yearCandidateValues = computed(() => {
     if (!yearValues.value) {
@@ -192,7 +194,7 @@ const allValuesToReplace = computed(() => {
 })
 
 // Aggregate all values
-const allValues = computed(() => {
+function setDefaultValues() {
     if (!yearValues.value) {
         return []
     }
@@ -213,14 +215,22 @@ const allValues = computed(() => {
                     }
                 })
 
+
             }
+
             selectedValues[year] = value
             originalYearModel[year] = values[0].rawValue
         }
 
     })
 
-    return Array.from(featureValues)
+    allValues.value = Array.from(featureValues)
+}
+
+onMounted(() => {
+    yearValues.value = props.yearValues
+    setDefaultValues()
+
 })
 
 
