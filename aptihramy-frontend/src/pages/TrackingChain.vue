@@ -1,5 +1,5 @@
 <template>
-    <TopBar :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title=""></TopBar>
+    <TopBarTrackingChain :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title=""></TopBarTrackingChain>
     <v-col v-if="materializedTrackerFrames">
         <!-- Navigation Buttons -->
         <v-row justify="center" align="center">
@@ -82,18 +82,16 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "vue";
-import TopBar from '@/components/TopBars/TopBar.vue';
 import { FrameRecordIdx, NodePosition, TrackinChainProps } from "../types/types"
 import { Network, Edge, Node, IdType } from 'vis-network';
-import '../styles/theme.css';
-import '../styles/button.css';
-import '../styles/error_card.css';
+import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedYearsStore } from '../core/stores/trackedYears';
 import { getEdgeColor, getNodeColor } from '@/core/utils';
+import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100
@@ -206,7 +204,7 @@ function buildEdge(from: string, to: string, color: string, label: string, dashe
         width: 2,
         label: label,
         font: {
-            size: 14, // Adjust size for readability
+            size: 14,
             color: "#007bff",
             align: "top",
             bold: "true",

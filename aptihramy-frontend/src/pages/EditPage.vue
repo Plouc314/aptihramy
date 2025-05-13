@@ -1,26 +1,22 @@
 <template>
-    <!--
-    <v-col>
-        <TopBar title="Edit Page"></TopBar>
-        <v-row v-if="mostProbable && featureValues && !error">
-            <v-col v-for="([rawFeature, values], index) in featureValues" :key="index" cols=" 12" md="6">
-                <v-card>
-                    <v-card-title class="title-text">{{ tfStore.getPrettyFromRaw(rawFeature) }}</v-card-title>
-                    <v-card-subtitle class="subtitle-text">
-                        {{ mostProbable.get(rawFeature) }}
-                    </v-card-subtitle>
-
-                    <v-divider :thickness="3" color="info"></v-divider>
-
-                    <v-select v-model="selectedValues[rawFeature]" :items="values" label="Select an option"></v-select>
-
-                </v-card>
-            </v-col>
-        </v-row>
+    <v-col v-if="featureYearValues">
+        <TopBarEditPage title="Edit Page" :save="saveSelected"></TopBarEditPage>
+        <v-expansion-panels v-model="expandedFeatureIndexes" multiple>
+            <v-expansion-panel v-for="(prettyFeature, featureIndex) in allFeatures" :key="featureIndex">
+                <v-expansion-panel-title class="expansion-title">
+                    {{ prettyFeature }}
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                    <EditMetrics :pretty-feature="prettyFeature" :year-values="featureYearValues.get(prettyFeature)"
+                        :updated-values="updatedValues.get(prettyFeature)" @update-values="updateValues">
+                    </EditMetrics>
+                </v-expansion-panel-text>
+            </v-expansion-panel>
+        </v-expansion-panels>
     </v-col>
-    <v-progress-circular v-if="!featureValues && !error" indeterminate :size="80" :width="10"
-        class="loading-spinner"></v-progress-circular>
 
+    <v-progress-circular v-if="!featureYearValues && !error" indeterminate :size="80" :width="10"
+        class="loading-spinner"></v-progress-circular>
     <div v-if="error" class="error-container">
         <v-card class="error-card">
             <v-card-text class="error-content">
@@ -29,121 +25,92 @@
             </v-card-text>
         </v-card>
     </div>
-   -->
-
 </template>
 
 <script setup lang="ts">
-// import { ref, reactive, computed, onMounted, watch } from "vue";
-// import { CLEANED, TEST_DATA } from "@/config/test_data";
-// import { COLUMNS_RAW, COLUMN_RAW_TO_PRETTY } from "@/config/constants";
-// import { useRoute, useRouter } from 'vue-router';
-// import TopBar from "@/components/TopBars/TopBar.vue";
-// import { EditPageProps } from "../types/types";
-// import { fetchRecordValues, fetchTrackerInformation, fetchTrackingChain } from "@/core/api";
-// import { ChainNode, FeatureValues, TrackerDiagnostics } from "@/types/api_types";
-// import { useSnackbarQueue } from "@/core/snackbarQueue";
-// import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
-
-// const props = defineProps<EditPageProps>();
-
-// const router = useRouter();
-// const route = useRoute();
-// const trackerDiagnostics = ref<TrackerDiagnostics | null>(null);
-// const error = ref(false)
-// const { addSnackbar, snackbarTypes } = useSnackbarQueue();
-
-// const tfStore = trackedFeaturesStore()
-// const selectedValues = ref<Map<string, string | number>>(new Map())
+import { ref, computed, onMounted } from "vue";
+import EditMetrics from "@/components/EditMetrics.vue";
+import { EditPageProps, RawNormalizedValue } from "../types/types";
+import { useSnackbarQueue } from "@/core/snackbarQueue";
+import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
+import { fetchMaterializedFrames } from "@/core/api";
+import { MaterializedTrackerFrame } from "@/types/api_types";
+import { trackedYearsStore } from "@/core/stores/trackedYears";
+import '../styles/main.css';
+import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
 
 
-// watch(tfStore.getTrackedFeatures, trackedFeaturesStore => {
-//     if (trackedFeaturesStore) {
-//         tfStore.getTrackedFeatures.pretty_features.forEach(f => selectedValues.value.set(f, ""))
-//     }
+const props = defineProps<EditPageProps>();
+const error = ref(false)
+const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
-// })
+const tfStore = trackedFeaturesStore()
+tfStore.fetchTrackedFeatures()
+const tyStore = trackedYearsStore()
+tyStore.fetchTrackedYears()
 
-// async function fetchAllRecords(newTrackingChain: ChainNode[]): Promise<Map<number, FeatureValues>> {
-//     const resultsMap = new Map<number, FeatureValues>();
-//     const promises = newTrackingChain.map(async ({ frame_idx, record_idx }) => {
-//         try {
-//             const data = await fetchRecordValues(frame_idx, record_idx);
-//             const records = data.records
-//             if (records) {
-//                 resultsMap.set(frame_idx, records)
-//             }
-//         } catch (error) {
-//             console.error(`Failed to fetch for frame_idx: ${frame_idx}, record_idx: ${record_idx}`, error);
-//         }
-//     });
+const allFeatures = computed(() => tfStore.getTrackedFeatures ? tfStore.getTrackedFeatures.pretty_features : null)
+const expandedFeatureIndexes = ref([])
+const frames = ref<MaterializedTrackerFrame[] | null>(null)
 
-//     await Promise.allSettled(promises);
-//     return resultsMap;
-// }
+// pretty feature -> year -> updated value
+const updatedValues = ref(new Map<string, Map<number, string | number>>())
 
-// const featureValues = ref<FeatureValues>(null)
-// const mostProbable = computed<Map<string, string | number>>(() => {
-//     if (!trackerDiagnostics.value || !tfStore) {
-//         return null
-//     }
+const featureYearValues = computed(() => {
+    if (frames.value == null || allFeatures.value == null) {
+        return null
+    }
+    // feature -> Year -> values
+    const featureYearValues = new Map<string, Map<number, RawNormalizedValue[]>>()
 
-//     const m = new Map<string, string | number>()
-//     trackerDiagnostics.value.frames[trackerDiagnostics.value.frames.length - 1].memory.forEach(
-//         (values, index) => m.set(tfStore.getTrackedFeatures.raw_features[index], values[0])
-//     )
+    for (let featureIndex = 0; featureIndex < allFeatures.value.length; featureIndex++) {
+        const prettyFeature = tfStore.getTrackedFeature(featureIndex)
 
-//     return m
-// }
-// )
+        const yearValues = new Map<number, RawNormalizedValue[]>()
+        for (let i = 0; i < frames.value.length; i++) {
+            const frame = frames.value[i]
 
-// watch(trackerDiagnostics, newtrackerDiagnostics => {
-//     if (!newtrackerDiagnostics) {
-//         return []
-//     }
+            if (frame.matching_record_idx == null) {
+                continue
+            }
 
-//     const nodes: ChainNode[] = []
-//     for (const a of newtrackerDiagnostics.frames) {
-//         for (const b of a.records) {
-//             nodes.push({ frame_idx: a.frame_idx, record_idx: b.record_idx })
-//         }
-//     }
+            const allFeatureValues: RawNormalizedValue[] = frame.records.map(r => { return { rawValue: r.record_raw_values[featureIndex], normalizedValue: r.record_normalized_values[featureIndex] } })
+            yearValues.set(tyStore.getYearFromFrameIdx(frame.frame_idx), allFeatureValues)
+        }
 
-//     const temp: FeatureValues = new Map()
-//     fetchAllRecords(nodes).then(data => {
-//         data.forEach((recordValues, frameidx) => {
-//             for (const feature in recordValues) {
-//                 const values = recordValues[feature]
-//                 const currentValues = temp.get(feature)
+        featureYearValues.set(prettyFeature, yearValues)
 
-//                 if (currentValues) {
-//                     currentValues.push(...values)
-//                     const currentValuesSet = new Set(currentValues.filter(a => a != null))
-//                     temp.set(feature, Array.from(currentValuesSet))
-//                 } else {
-//                     temp.set(feature, values)
+    }
 
-//                 }
-//             }
-//         })
-//         featureValues.value = temp
-//     })
-// })
+    return featureYearValues
+
+})
 
 
-// onMounted(() => {
-//     const param = props.trackerID
-//     fetchTrackerInformation(param)
-//         .then(data => {
-//             if (data.diagnostic) {
-//                 trackerDiagnostics.value = data.diagnostic
-//             } else {
-//                 addSnackbar("Person not found", snackbarTypes.ERROR)
-//                 error.value = true
-//             }
-//         }).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+function updateValues(prettyFeature: string, yearValues: Map<number, string | number>) {
+    updatedValues.value.set(prettyFeature, yearValues)
+}
 
-// })
+function saveSelected() {
+    addSnackbar("To be implemented", snackbarTypes.INFO)
+}
+
+onMounted(() => {
+    const param = props.trackerID
+
+    fetchMaterializedFrames(param)
+        .then(data => {
+            if (data.frames) {
+                frames.value = data.frames
+
+
+            } else {
+                addSnackbar("Person not found", snackbarTypes.ERROR)
+                error.value = true
+            }
+        }
+        ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+})
 </script>
 
 <style scoped>
@@ -158,20 +125,10 @@
     color: var(--primary)
 }
 
-.error-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    /* Full viewport height */
-    width: 100%;
-    /* Full width */
-}
-
-.loading-spinner {
-    position: fixed;
-    /* Ensures it stays in the middle of the viewport */
-    top: 50%;
-    left: 50%;
+.expansion-title {
+    font-size: 1.25rem;
+    /* or any size you want */
+    font-weight: 500;
+    color: var(--text-color);
 }
 </style>

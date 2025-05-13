@@ -14,6 +14,17 @@ export interface TopBarProps {
     title: string;
 }
 
+export interface TopBarTrackingChainProps {
+    resetZoom: Function;
+    goToEditPage: Function;
+    title: string;
+}
+
+export interface TopBarEditPageProps {
+    save: Function;
+    title: string;
+}
+
 export type ColumnRows = Map<string, string[]>
 
 export interface DisplayPeopleProps {
@@ -40,15 +51,22 @@ export interface CandidateRecordValues {
 
 export interface FilterState {
     id: number;
-    column: string;
-    rowInput: string;
+    feature: string;
+    input: string;
 }
 
 export interface FilterProps {
     canRemove: boolean;
     id: number;
-    remainingColumns: string[];
+    feature?: string 
+    value?: string
+    remainingFeatures: string[];
     suggestions: string[];
+}
+
+export type FilterEmits = {
+    (event: 'edit-filter', payload: FilterState): void;
+    (event: 'delete-filter', payload: FilterState): void;
 }
 
 export interface TrackinChainProps {
@@ -60,10 +78,14 @@ export interface EditPageProps {
 }
 
 export interface EditMetricsProps {
-    mostProbableOption: string,
-    probability: number,
-    options: string[],
+    prettyFeature: string
+    yearValues: Map<number, RawNormalizedValue[]>
+    updatedValues: Map<number, string | number> | undefined
 }
+
+export type EditMetricsEmit = {
+    (e: 'update-values', payload: string, a: Map<number, string | number>): void;
+};
 
 export interface Snackbar {
     message: string,
@@ -73,3 +95,7 @@ export interface Snackbar {
 export type NodePosition = { x: number, y: number }
 
 export type FrameRecordIdx = { frameIdx: number, recordIdx: number }
+
+export type RawNormalizedValue = { rawValue: string | number, normalizedValue: string | number }
+
+

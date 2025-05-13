@@ -21,3 +21,9 @@ export function getEdgeColor(value: number) {
 
     return rootStyles.getPropertyValue("--color-green").trim();
 }
+
+
+export function getColorForMatch(matched: boolean) {
+    const rootStyles = getComputedStyle(document.documentElement);
+    return matched ? rootStyles.getPropertyValue("--color-green").trim() : rootStyles.getPropertyValue("--color-red").trim()
+}

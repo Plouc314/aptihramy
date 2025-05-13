@@ -1,9 +1,11 @@
 /* Light Mode Theme */
+
 :root {
     --primary: #0056B3;
     --secondary: #3372e9;
     --accent: #00A6FB;
 
+    --light-blue: #e0f7fa;
     --background: #F9FAFC;
     --background-alt: #e0e0e0f3;
     --table-hover: #a8a8a8;

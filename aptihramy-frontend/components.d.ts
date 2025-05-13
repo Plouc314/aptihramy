@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CompareFrame: typeof import('./src/components/CompareFrame.vue')['default']
+    copy: typeof import('./src/components/TopBars/TopBarTrackingChain.vue')['default']
     CrashTest: typeof import('./src/components/CrashTest.vue')['default']
     CrashTest2: typeof import('./src/components/CrashTest2.vue')['default']
     DisplayPeople: typeof import('./src/components/DisplayPeople.vue')['default']
@@ -24,6 +25,8 @@ declare module 'vue' {
     Snackbar: typeof import('./src/components/Snackbar.vue')['default']
     Test: typeof import('./src/components/CrashTest2.vue')['default']
     TopBar: typeof import('./src/components/TopBars/TopBar.vue')['default']
+    TopBarEditPage: typeof import('./src/components/TopBars/TopBarEditPage.vue')['default']
+    TopBarTrackingChain: typeof import('./src/components/TopBars/TopBarTrackingChain.vue')['default']
     TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']
   }
 }

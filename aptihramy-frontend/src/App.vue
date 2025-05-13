@@ -7,7 +7,7 @@
   </v-app>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { trackedFeaturesStore } from './core/stores/trackedFeatures';
 import { trackedYearsStore } from './core/stores/trackedYears';
 
