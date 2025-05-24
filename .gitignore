@@ -2,6 +2,9 @@
 
 foo.py
 
+# sqlite
+*.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 .pytest_cache/

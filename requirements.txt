@@ -3,3 +3,7 @@ fastapi
 uvicorn
 python-multipart
 pyarrow>=19.0.0,<20.0.0
+
+# auth
+fastapi-users[sqlalchemy]>=14.0.1,<15.0.0
+aiosqlite

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from blitzbeaver.literals import ID, Element
@@ -15,10 +16,20 @@ from models import (
     TrackedYearsModel,
     MaterializedTrackingChainModel,
 )
-import ast
 
-app = FastAPI()
+from auth.routers import setup_auth_routes
+from auth.db import create_db_and_tables
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_db_and_tables()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+setup_auth_routes(app)
 
 app.add_middleware(
     CORSMiddleware,
