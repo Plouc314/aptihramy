@@ -58,11 +58,11 @@ class Database:
             d[field.name] = i
         return d
 
-    def _get_last_frame_values_for_all_features(self) -> dict[str, dict[ID, list[str]]]:
-        d = {}
-        for schema in self._record_schema.fields:
-            d[schema.name] = self.get_last_frame_values_of_feature(schema.name)
-        return d
+    # def _get_last_frame_values_for_all_features(self) -> dict[str, dict[ID, list[str]]]:
+    #     d = {}
+    #     for schema in self._record_schema.fields:
+    #         d[schema.name] = self.get_last_frame_values_of_feature(schema.name)
+    #     return d
 
     def _build_last_frame_values(self) -> dict[str, dict[ID, list[str]]]:
         """
@@ -114,46 +114,46 @@ class Database:
     def get_feature_index(self, raw_feature: str) -> int | None:
         return self._feature_indexes.get(raw_feature)
 
-    def get_last_frame_values_of_feature(
-        self, raw_feature: str
-    ) -> dict[ID, list[str]] | None:
-        """
-        Retrieves the values of the last frame for a feature for all trackers.
+    # def get_last_frame_values_of_feature(
+    #     self, raw_feature: str
+    # ) -> dict[ID, list[str]] | None:
+    #     """
+    #     Retrieves the values of the last frame for a feature for all trackers.
 
-        Args:
-            raw_feature (str): The raw feature name.
+    #     Args:
+    #         raw_feature (str): The raw feature name.
 
-        Returns:
-            dict[ID, list[str]] | None: A dictionary mapping tracker IDs to
-            their last recorded feature values, or None if the feature is not found.
-        """
-        return self._feature_last_frame_value.get(raw_feature)
+    #     Returns:
+    #         dict[ID, list[str]] | None: A dictionary mapping tracker IDs to
+    #         their last recorded feature values, or None if the feature is not found.
+    #     """
+    #     return self._feature_last_frame_value.get(raw_feature)
 
-    def _get_last_frame_values_of_feature(
-        self, raw_feature: str
-    ) -> dict[ID, list[str]] | None:
-        """
-        Retrieves the values of the last frame for a feature for all trackers.
+    # def _get_last_frame_values_of_feature(
+    #     self, raw_feature: str
+    # ) -> dict[ID, list[str]] | None:
+    #     """
+    #     Retrieves the values of the last frame for a feature for all trackers.
 
-        Args:
-            raw_feature (str): The raw feature name.
+    #     Args:
+    #         raw_feature (str): The raw feature name.
 
-        Returns:
-            dict[ID, list[str]] | None: A dictionary mapping tracker IDs to
-            their last recorded feature values, or None if the feature is not found.
-        """
-        feature_index = self.get_feature_index(raw_feature)
-        if feature_index is None:
-            return None
+    #     Returns:
+    #         dict[ID, list[str]] | None: A dictionary mapping tracker IDs to
+    #         their last recorded feature values, or None if the feature is not found.
+    #     """
+    #     feature_index = self.get_feature_index(raw_feature)
+    #     if feature_index is None:
+    #         return None
 
-        tracker_feature_mem = {}
+    #     tracker_feature_mem = {}
 
-        for tracker_id, tracker_diagnostic in self._graph.diagnostics.trackers.items():
-            if len(tracker_diagnostic.frames) > 0:
-                last_diagnostic = tracker_diagnostic.frames[-1]
-                tracker_feature_mem[tracker_id] = last_diagnostic.memory[feature_index]
+    #     for tracker_id, tracker_diagnostic in self._graph.diagnostics.trackers.items():
+    #         if len(tracker_diagnostic.frames) > 0:
+    #             last_diagnostic = tracker_diagnostic.frames[-1]
+    #             tracker_feature_mem[tracker_id] = last_diagnostic.memory[feature_index]
 
-        return tracker_feature_mem
+    #     return tracker_feature_mem
 
     def get_diagnostics(self, tracker_id: ID) -> TrackerDiagnostics | None:
         """
@@ -167,11 +167,11 @@ class Database:
         """
         return self._graph.diagnostics.get_tracker(tracker_id)
 
-    def get_memory_for_frame_of_tracker(
-        self, frame_idx: int, tracker_id: ID
-    ) -> list[list[str]]:
-        tracker = self._graph.diagnostics.get_tracker(tracker_id)
-        return tracker.frames[frame_idx].memory if tracker else []
+    # def get_memory_for_frame_of_tracker(
+    #     self, frame_idx: int, tracker_id: ID
+    # ) -> list[list[str]]:
+    #     tracker = self._graph.diagnostics.get_tracker(tracker_id)
+    #     return tracker.frames[frame_idx].memory if tracker else []
 
     def get_all_memory_from_last_frame_for_trackers(
         self, tracker_ids: list[ID]
