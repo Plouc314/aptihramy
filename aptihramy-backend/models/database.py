@@ -2,9 +2,9 @@ from pydantic import BaseModel
 
 
 class Manifest(BaseModel):
-    is_graph: bool
-    dataframes_years: list[str] | None
-    normalized_dataframes_years: list[str] | None
+    graph: str | None = None
+    dataframes_years: list[str] | None = None
+    normalized_dataframes_years: list[str] | None = None
 
 
 class DatabaseStatus(BaseModel):

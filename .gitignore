@@ -1,6 +1,12 @@
 /target
 
+*.zip
+.env
 foo.py
+data/dataframes/*.csv
+data/normalized_dataframes/*.csv
+data/graph/*.beaver
+data/manifest.json
 
 # sqlite
 *.db

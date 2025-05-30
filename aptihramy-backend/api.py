@@ -1,14 +1,22 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+
+from fastapi import FastAPI, HTTPException, Depends, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from blitzbeaver.literals import ID, Element
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from blitzbeaver.literals import ID, Element
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import auth
 from database import Database
 from constants import (
     COLUMN_PRETTY_TO_RAW,
-    FOLDER_PATH,
     RECORD_SCHEMA,
+    PATH_IMAGES,
     PATH_MANIFEST,
     PATH_GRAPH,
     PATH_DATAFRAMES,
@@ -23,9 +31,11 @@ from models import (
     TrackedYearsModel,
     MaterializedTrackingChainModel,
 )
+from exceptions import AptihramyException
 
-from auth.routers import setup_auth_routes
-from auth.db import create_db_and_tables
+FASTAPI_SERVE_FRONTEND = (
+    os.environ.get("FASTAPI_SERVE_FRONTEND", "false").lower() == "true"
+)
 
 db = Database(
     RECORD_SCHEMA,
@@ -38,14 +48,17 @@ db = Database(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await create_db_and_tables()
+    await auth.setup_auth_database()
     db.initialize()
     yield
 
 
 app = FastAPI(lifespan=lifespan)
 
-setup_auth_routes(app)
+auth.setup_auth_routes(app)
+
+if FASTAPI_SERVE_FRONTEND:
+    app.mount("/app", StaticFiles(directory="public", html=True), name="public")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,14 +69,36 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get(
+    "/api",
+    dependencies=[
+        Depends(auth.current_active_user),
+        Depends(db.database_status_dependency),
+    ],
+)
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
 
-@app.get("/images/{filename}")
+@app.post("/api/upload/graph", dependencies=[Depends(auth.current_active_user)])
+def upload_graph(file: UploadFile) -> None:
+    try:
+        db.save_graph(file.file)
+    except AptihramyException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/upload/dataframes", dependencies=[Depends(auth.current_active_user)])
+def upload_dataframes(file: UploadFile, normalized: bool = False) -> None:
+    try:
+        db.save_dataframes(file.file, normalized=normalized)
+    except AptihramyException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/images/{filename}")
 async def get_image(filename: str):
-    file_path = os.path.join(FOLDER_PATH, filename)
+    file_path = os.path.join(PATH_IMAGES, filename)
     if os.path.exists(file_path):
         return FileResponse(
             file_path, media_type="image/jpeg"
@@ -71,7 +106,7 @@ async def get_image(filename: str):
     return {"error": "File not found"}
 
 
-@app.post("/filter")
+@app.post("/api/filter")
 def filter_data(
     request: FilterRequest,
 ):
@@ -104,13 +139,13 @@ def filter_data(
     return FilterResponse(data=data)
 
 
-@app.get("/features")
+@app.get("/api/features")
 def get_tracked_features():
     raw_features, pretty_features = db.get_tracked_features()
     return {"raw_features": raw_features, "pretty_features": pretty_features}
 
 
-@app.get("/tracker")
+@app.get("/api/tracker")
 def get_tracker_id_information(
     tracker_id: int,
 ):
@@ -119,7 +154,7 @@ def get_tracker_id_information(
     )
 
 
-@app.get("/tracking_chain")
+@app.get("/api/tracking_chain")
 def get_tracking_chain(
     tracker_id: int,
 ):
@@ -128,7 +163,7 @@ def get_tracking_chain(
     )
 
 
-@app.get("/materialized_frames")
+@app.get("/api/materialized_frames")
 def get_materialized_frames(
     tracker_id: int,
 ):
@@ -156,7 +191,7 @@ def get_materialized_frames(
     )
 
 
-@app.get("/record")
+@app.get("/api/record")
 def get_record_values(
     frame_idx: int,
     record_idx: int,
@@ -170,6 +205,6 @@ def get_record_values(
         )
 
 
-@app.get("/tracked_years")
+@app.get("/api/tracked_years")
 def get_tracked_years():
     return TrackedYearsModel(tracked_years=db.get_tracked_years())

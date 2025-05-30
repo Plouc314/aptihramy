@@ -1,16 +1,16 @@
 import json
+import os
+import re
+import zipfile
+from fastapi import HTTPException
 import polars as pl
 from typing import BinaryIO
 
 import blitzbeaver as bb
 from blitzbeaver.literals import ID, Element
-from blitzbeaver import (
-    TrackerDiagnostics,
-    MaterializedTrackingChain,
-    NormalizationConfig,
-)
 from models.database import Manifest, DatabaseStatus
 from constants import COLUMN_RAW_TO_PRETTY
+from exceptions import AptihramyException
 
 
 class Database:
@@ -36,10 +36,14 @@ class Database:
         self._feature_last_frame_value: dict[str, dict[ID, list[str]]] | None = None
 
     def initialize(self) -> None:
-        self._manifest = self._load_manifest(self._path_manifest)
+        if not os.path.exists(self._path_manifest):
+            self._manifest = Manifest()
+            self._save_manifest()
 
-        if self._manifest.is_graph:
-            self._graph = bb.read_beaver(self._path_graph)
+        self._manifest = self._load_manifest()
+
+        if self._manifest.graph is not None:
+            self._graph = self._load_graph(self._manifest.graph)
             self._feature_last_frame_value = self._build_last_frame_values()
 
         if self._manifest.dataframes_years is not None:
@@ -53,9 +57,21 @@ class Database:
                 self._manifest.normalized_dataframes_years,
             )
 
-    def _load_manifest(self, path_manifest: str) -> Manifest:
-        with open(path_manifest, "r") as file:
+    def _load_manifest(self) -> Manifest:
+        with open(self._path_manifest, "r") as file:
             return Manifest(**json.load(file))
+
+    def _load_graph(self, graph_filename: str) -> bb.TrackingGraph:
+        """
+        Loads a tracking graph from a .beaver file.
+
+        Args:
+            graph_filename (str): The name of the .beaver file containing the tracking graph.
+
+        Returns:
+            TrackingGraph: The loaded tracking graph.
+        """
+        return bb.read_beaver(f"{self._path_graph}/{graph_filename}")
 
     def _load_dataframes(
         self,
@@ -73,16 +89,12 @@ class Database:
             for year in years
         ]
 
-    def save_graph(self, graph: bb.TrackingGraph) -> None:
-        bb.save_beaver(self._path_graph, graph)
-        self._graph = graph
-        self._feature_last_frame_value = self._build_last_frame_values()
-        self._manifest.is_graph = True
-
-    def save_dataframes(self, zip_file: BinaryIO, is_normalized: bool) -> None:
-        pass
-
     def get_database_status(self) -> DatabaseStatus:
+        """
+        Checks the status of the database and returns a DatabaseStatus object.
+        Returns:
+            DatabaseStatus: An object indicating whether the database is ready or if there are errors.
+        """
         if self._manifest.dataframes_years is None:
             return DatabaseStatus(error="Missing dataframes.")
         if self._manifest.normalized_dataframes_years is None:
@@ -92,11 +104,76 @@ class Database:
             != self._manifest.normalized_dataframes_years
         ):
             return DatabaseStatus(
-                error="Dataframes years does not match normalized dataframes years."
+                error="Dataframes years do not match normalized dataframes years."
             )
-        if not self._manifest.is_graph:
+        if self._manifest.graph is None:
             return DatabaseStatus(error="Missing tracking graph.")
         return DatabaseStatus(ready=True)
+
+    def database_status_dependency(self) -> None:
+        """
+        FastAPI dependency to check the database status.
+        Raises:
+            HTTPException: If the database is not ready or has errors.
+        """
+        status = self.get_database_status()
+        if not status.ready:
+            raise HTTPException(status_code=500, detail=status.error)
+
+    def save_graph(self, zip_file: BinaryIO) -> None:
+        """
+        Save the tracking graph from a zip file containing a single .beaver file.
+        """
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            filenames = zip_ref.namelist()
+            if len(filenames) != 1 or not filenames[0].endswith(".beaver"):
+                raise AptihramyException(
+                    "The zip file must contain a single .beaver file."
+                )
+            self._manifest.graph = filenames[0]
+            zip_ref.extract(filenames[0], self._path_graph)
+
+        self._graph = self._load_graph(self._manifest.graph)
+        self._feature_last_frame_value = self._build_last_frame_values()
+        self._save_manifest()
+
+    def save_dataframes(self, zip_file: BinaryIO, normalized: bool) -> None:
+        """
+        Save dataframes from a zip file containing CSV files in format YYYY.csv.
+        If is_normalized is True, saves to the normalized dataframes path.
+        """
+        if normalized:
+            path_dataframes = self._path_normalized_dataframes
+        else:
+            path_dataframes = self._path_dataframes
+        years = []
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            filenames = zip_ref.namelist()
+            for filename in filenames:
+                if not re.match(r"^\d{4}\.csv$", filename):
+                    raise AptihramyException(
+                        "The zip file must contain CSV files in format YYYY.csv."
+                    )
+                year = filename.split(".")[0]
+                zip_ref.extract(filename, path_dataframes)
+                years.append(year)
+
+        if normalized:
+            self._manifest.normalized_dataframes_years = years
+            self._normalized_dataframes = self._load_dataframes(
+                self._path_normalized_dataframes, years
+            )
+        else:
+            self._manifest.dataframes_years = years
+            self._dataframes = self._load_dataframes(self._path_dataframes, years)
+        self._save_manifest()
+
+    def _save_manifest(self) -> None:
+        """
+        Saves the current manifest to the manifest file.
+        """
+        with open(self._path_manifest, "w") as file:
+            json.dump(self._manifest.model_dump(), file, indent=4)
 
     def _get_feature_indexes(self) -> dict[str, int]:
         """
@@ -147,7 +224,7 @@ class Database:
     def get_feature_index(self, raw_feature: str) -> int | None:
         return self._feature_indexes.get(raw_feature)
 
-    def get_diagnostics(self, tracker_id: ID) -> TrackerDiagnostics | None:
+    def get_diagnostics(self, tracker_id: ID) -> bb.TrackerDiagnostics | None:
         """
         Retrieves diagnostics for a specific tracker.
 
@@ -315,7 +392,7 @@ class Database:
         )
 
     def get_frame_idx_record_idxs_from_materialized_chain(
-        self, materialized_chain: MaterializedTrackingChain
+        self, materialized_chain: bb.MaterializedTrackingChain
     ) -> dict[int, list[int]]:
         d = {}
         for frame in materialized_chain.frames:
@@ -334,7 +411,7 @@ class Database:
 
     def get_materialized_tracking_chain(
         self, tracker_id: ID
-    ) -> MaterializedTrackingChain:
+    ) -> bb.MaterializedTrackingChain:
         """
         Retrieves the materialized tracking chain for a tracker.
 

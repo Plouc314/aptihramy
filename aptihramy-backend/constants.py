@@ -1,9 +1,13 @@
+import os
 import blitzbeaver as bb
 
-PATH_MANIFEST = "."
-PATH_GRAPH = "./beaver_files/graph.beaver"
-PATH_DATAFRAMES = "."
-PATH_NORMALIZED_DATAFRAMES = "."
+PATH_DATA_FOLDER = os.environ.get("PATH_DATA_FOLDER")
+
+PATH_MANIFEST = os.path.join(PATH_DATA_FOLDER, "manifest.json")
+PATH_GRAPH = os.path.join(PATH_DATA_FOLDER, "graph")
+PATH_DATAFRAMES = os.path.join(PATH_DATA_FOLDER, "dataframes")
+PATH_NORMALIZED_DATAFRAMES = os.path.join(PATH_DATA_FOLDER, "normalized_dataframes")
+PATH_IMAGES = os.path.join(PATH_DATA_FOLDER, "images")
 
 RECORD_SCHEMA = bb.RecordSchema(
     [
@@ -32,5 +36,3 @@ COLUMN_PRETTY_TO_RAW = {
 COLUMN_RAW_TO_PRETTY = {value: key for key, value in COLUMN_PRETTY_TO_RAW.items()}
 
 COLUMNS_PRETTY = list(COLUMN_PRETTY_TO_RAW.keys())
-
-FOLDER_PATH = "pages"
