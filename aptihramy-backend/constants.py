@@ -8,6 +8,10 @@ PATH_GRAPH = os.path.join(PATH_DATA_FOLDER, "graph")
 PATH_DATAFRAMES = os.path.join(PATH_DATA_FOLDER, "dataframes")
 PATH_NORMALIZED_DATAFRAMES = os.path.join(PATH_DATA_FOLDER, "normalized_dataframes")
 PATH_IMAGES = os.path.join(PATH_DATA_FOLDER, "images")
+PATH_FLFV_CACHE = os.path.join(PATH_DATA_FOLDER, "flfv_cache.pickle")
+
+PATH_DB_UPDATE_SYSTEM = os.path.join(PATH_DATA_FOLDER, "update_system.db")
+DB_URL_UPDATE_SYSTEM = f"sqlite+aiosqlite:///{PATH_DB_UPDATE_SYSTEM}"
 
 RECORD_SCHEMA = bb.RecordSchema(
     [
