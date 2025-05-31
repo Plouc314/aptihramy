@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from blitzbeaver.literals import ID, Element
@@ -117,6 +117,38 @@ def upload_dataframes(file: UploadFile, normalized: bool = False) -> None:
         ddh.save_dataframes(file.file, normalized=normalized)
     except AptihramyException as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/download/graph", dependencies=[Depends(auth.current_active_user)])
+def download_graph():
+    """
+    Download the tracking graph as a zip file.
+    """
+    if ddh.graph is None:
+        raise HTTPException(status_code=400, detail="Graph is missing.")
+    zip_file = ddh.create_zip_with_graph()
+    return StreamingResponse(
+        zip_file,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=tracking_graph.zip"},
+    )
+
+
+@app.get("/api/download/dataframes", dependencies=[Depends(auth.current_active_user)])
+def download_dataframes(normalized: bool = False):
+    """
+    Download dataframes as a zip file.
+    If normalized is True, downloads normalized dataframes.
+    """
+    if (normalized and ddh.normalized_dataframes) is None or ddh.dataframes is None:
+        raise HTTPException(status_code=400, detail="Dataframes are missing.")
+    zip_file = ddh.create_zip_with_dataframes(normalized=normalized)
+
+    return StreamingResponse(
+        zip_file,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=dataframes.zip"},
+    )
 
 
 @app.post("/api/update/batch", dependencies=[Depends(auth.current_active_user)])

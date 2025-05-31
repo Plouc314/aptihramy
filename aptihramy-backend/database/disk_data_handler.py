@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 import os
 import re
@@ -196,6 +197,45 @@ class DiskDataHandler:
         """
         with open(self._path_manifest, "w") as file:
             json.dump(self._manifest.model_dump(), file, indent=4)
+
+    def create_zip_with_graph(self) -> BinaryIO:
+        """
+        Creates a zip file containing the tracking graph.
+        Returns:
+            BinaryIO: A binary stream containing the zip file with the graph.
+        """
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(
+                f"{self._path_graph}/{self._manifest.graph}",
+                arcname=self._manifest.graph,
+            )
+        zip_buffer.seek(0)
+        return zip_buffer
+
+    def create_zip_with_dataframes(self, normalized: bool) -> BinaryIO:
+        """
+        Creates a zip file containing the dataframes.
+        If normalized is True, includes normalized dataframes.
+        Returns:
+            BinaryIO: A binary stream containing the zip file with the dataframes.
+        """
+        if normalized:
+            path_dataframes = self._path_normalized_dataframes
+            years = self._manifest.normalized_dataframes_years
+        else:
+            path_dataframes = self._path_dataframes
+            years = self._manifest.dataframes_years
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for year in years:
+                zip_file.write(
+                    f"{path_dataframes}/{year}.csv",
+                    arcname=f"{year}.csv",
+                )
+        zip_buffer.seek(0)
+        return zip_buffer
 
     def apply_update_batch(
         self,
