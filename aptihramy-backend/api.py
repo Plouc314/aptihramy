@@ -103,7 +103,7 @@ def check_disk_data_status() -> DiskDataStatus:
     return ddh.get_disk_data_status()
 
 
-@app.post("/api/upload/graph", dependencies=[Depends(auth.current_active_user)])
+@app.post("/api/upload/graph", dependencies=[Depends(auth.current_super_user)])
 def upload_graph(file: UploadFile) -> None:
     try:
         ddh.save_graph(file.file)
@@ -111,7 +111,7 @@ def upload_graph(file: UploadFile) -> None:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/api/upload/dataframes", dependencies=[Depends(auth.current_active_user)])
+@app.post("/api/upload/dataframes", dependencies=[Depends(auth.current_super_user)])
 def upload_dataframes(file: UploadFile, normalized: bool = False) -> None:
     try:
         ddh.save_dataframes(file.file, normalized=normalized)
@@ -169,7 +169,7 @@ async def get_update_batch(batch_id: int) -> UpdateBatch:
 
 
 @app.delete(
-    "/api/update/batch/{batch_id}", dependencies=[Depends(auth.current_active_user)]
+    "/api/update/batch/{batch_id}", dependencies=[Depends(auth.current_super_user)]
 )
 async def delete_update_batch(batch_id: int) -> None:
     if not await update_system.remove_update_batch(batch_id):
@@ -178,7 +178,7 @@ async def delete_update_batch(batch_id: int) -> None:
 
 @app.post(
     "/api/update/batch/{batch_id}/accept",
-    dependencies=[Depends(auth.current_active_user)],
+    dependencies=[Depends(auth.current_super_user)],
 )
 async def accept_update_batch(batch_id: int) -> None:
     batch = await update_system.get_update_batch(batch_id)

@@ -21,6 +21,7 @@ RECORD_SCHEMA = bb.RecordSchema(
         bb.FieldSchema("chef_origine", bb.ElementType.String),
         bb.FieldSchema("epouse_nom", bb.ElementType.String),
         bb.FieldSchema("chef_vocation", bb.ElementType.String),
+        bb.FieldSchema("enfants_chez_parents_prenom", bb.ElementType.MultiStrings),
     ]
 )
 

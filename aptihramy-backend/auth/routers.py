@@ -1,9 +1,9 @@
 import uuid
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from fastapi_users import BaseUserManager
 
 from .schemas import UserCreate, UserRead, UserUpdate
-from .users import auth_backend, fastapi_users, get_user_manager, current_active_user
+from .users import auth_backend, fastapi_users, get_user_manager, current_super_user
 from .db import User
 
 
@@ -30,14 +30,11 @@ def setup_auth_routes(app: FastAPI) -> None:
     @app.post("/auth/create-user", tags=["auth"])
     async def create_user(
         user: UserCreate,
-        active_user: User = Depends(current_active_user),
+        active_user: User = Depends(current_super_user),
         user_manager: BaseUserManager[User, uuid.UUID] = Depends(get_user_manager),
     ) -> UserRead:
         """
         Create a new user.
         """
-        if not active_user.is_superuser:
-            raise HTTPException(401, detail="Only superusers can create users")
-
         created_user = await user_manager.create(user)
         return created_user
