@@ -1,5 +1,11 @@
+blitzbeaver
 polars>=1.19.0,<2
 fastapi 
 uvicorn
 python-multipart
 pyarrow>=19.0.0,<20.0.0
+python-dotenv
+
+# auth
+fastapi-users[sqlalchemy]>=14.0.1,<15.0.0
+aiosqlite

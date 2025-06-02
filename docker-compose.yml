@@ -1,0 +1,15 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      PATH_DATA_FOLDER: "./data"
+      FASTAPI_SERVE_FRONTEND: "true"
+      AUTH_SECRET: ""
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
