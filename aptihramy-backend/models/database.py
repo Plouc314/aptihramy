@@ -7,6 +7,6 @@ class Manifest(BaseModel):
     normalized_dataframes_years: list[str] | None = None
 
 
-class DatabaseStatus(BaseModel):
+class DiskDataStatus(BaseModel):
     ready: bool = False
     error: str | None = None

@@ -1,179 +1,83 @@
-import json
 import os
-import re
-import zipfile
-from fastapi import HTTPException
+import pickle
+import time
+from typing import Callable
 import polars as pl
-from typing import BinaryIO
 
 import blitzbeaver as bb
 from blitzbeaver.literals import ID, Element
-from models.database import Manifest, DatabaseStatus
-from constants import COLUMN_RAW_TO_PRETTY
-from exceptions import AptihramyException
+from constants import COLUMN_RAW_TO_PRETTY, PATH_FLFV_CACHE
+
+from .disk_data_handler import DiskDataHandler
 
 
-class Database:
+class FLFVCache:
+
+    flfv: dict[str, dict[ID, list[str]]] | None = None
+
+    @classmethod
+    def clear(cls, *_) -> None:
+        cls.flfv = None
+        if os.path.exists(PATH_FLFV_CACHE):
+            os.remove(PATH_FLFV_CACHE)
+
+    @classmethod
+    def load(cls) -> dict[str, dict[ID, list[str]]] | None:
+        if cls.flfv is not None:
+            return cls.flfv
+
+        if not os.path.exists(PATH_FLFV_CACHE):
+            return None
+
+        with open(PATH_FLFV_CACHE, "rb") as f:
+            cls.flfv = pickle.load(f)
+        return cls.flfv
+
+    @classmethod
+    def save(cls, flfv: dict[str, dict[ID, list[str]]]) -> None:
+        with open(PATH_FLFV_CACHE, "wb") as f:
+            pickle.dump(flfv, f)
+        cls.flfv = flfv
+
+
+class DataService:
 
     def __init__(
         self,
-        record_schema: bb.RecordSchema,
-        path_manifest: str,
-        path_graph: str,
-        path_dataframes: str,
-        path_normalized_dataframes: str,
+        disk_data_handler: DiskDataHandler,
     ):
-        self._record_schema = record_schema
-        self._path_manifest = path_manifest
-        self._path_graph = path_graph
-        self._path_dataframes = path_dataframes
-        self._path_normalized_dataframes = path_normalized_dataframes
+        self._record_schema = disk_data_handler.record_schema
         self._feature_indexes = self._get_feature_indexes()
-        self._manifest: Manifest | None = None
-        self._graph: bb.TrackingGraph | None = None
-        self._dataframes: list[pl.DataFrame] | None = None
-        self._normalized_dataframes: list[pl.DataFrame] | None = None
-        self._feature_last_frame_value: dict[str, dict[ID, list[str]]] | None = None
+        self._graph: bb.TrackingGraph = disk_data_handler.graph
+        self._dataframes: list[pl.DataFrame] = disk_data_handler.dataframes
+        self._normalized_dataframes: list[pl.DataFrame] = (
+            disk_data_handler.normalized_dataframes
+        )
+        self._tracker_years = disk_data_handler.manifest.dataframes_years
 
-    def initialize(self) -> None:
-        if not os.path.exists(self._path_manifest):
-            self._manifest = Manifest()
-            self._save_manifest()
+        flfv = FLFVCache.load()
+        if flfv is None:
+            flfv = self._build_last_frame_values()
+            FLFVCache.save(flfv)
 
-        self._manifest = self._load_manifest()
+        self._feature_last_frame_value: dict[str, dict[ID, list[str]]] = flfv
 
-        if self._manifest.graph is not None:
-            self._graph = self._load_graph(self._manifest.graph)
-            self._feature_last_frame_value = self._build_last_frame_values()
-
-        if self._manifest.dataframes_years is not None:
-            self._dataframes = self._load_dataframes(
-                self._path_dataframes, self._manifest.dataframes_years
-            )
-
-        if self._manifest.normalized_dataframes_years is not None:
-            self._normalized_dataframes = self._load_dataframes(
-                self._path_normalized_dataframes,
-                self._manifest.normalized_dataframes_years,
-            )
-
-    def _load_manifest(self) -> Manifest:
-        with open(self._path_manifest, "r") as file:
-            return Manifest(**json.load(file))
-
-    def _load_graph(self, graph_filename: str) -> bb.TrackingGraph:
+    @classmethod
+    def get_instance(
+        cls, disk_data_handler: DiskDataHandler
+    ) -> Callable[[], "DataService"]:
         """
-        Loads a tracking graph from a .beaver file.
+        Factory function to create a DataService instance.
+        """
 
-        Args:
-            graph_filename (str): The name of the .beaver file containing the tracking graph.
+        def inner():
+            st = time.perf_counter()
+            ds = cls(disk_data_handler)
+            d = time.perf_counter() - st
+            print(f"DataService initialized in {d:.2f} seconds")
+            return ds
 
-        Returns:
-            TrackingGraph: The loaded tracking graph.
-        """
-        return bb.read_beaver(f"{self._path_graph}/{graph_filename}")
-
-    def _load_dataframes(
-        self,
-        csv_path: str,
-        years: list[str],
-    ) -> list[pl.DataFrame]:
-        """
-        Reads CSV files for each year in the range and returns them as a list of Polars DataFrames.
-
-        Returns:
-            list[pl.DataFrame]: A list of DataFrames loaded from CSV files.
-        """
-        return [
-            pl.read_csv(f"{csv_path}/{year}.csv", infer_schema_length=10000)
-            for year in years
-        ]
-
-    def get_database_status(self) -> DatabaseStatus:
-        """
-        Checks the status of the database and returns a DatabaseStatus object.
-        Returns:
-            DatabaseStatus: An object indicating whether the database is ready or if there are errors.
-        """
-        if self._manifest.dataframes_years is None:
-            return DatabaseStatus(error="Missing dataframes.")
-        if self._manifest.normalized_dataframes_years is None:
-            return DatabaseStatus(error="Missing normalized dataframes.")
-        if (
-            self._manifest.dataframes_years
-            != self._manifest.normalized_dataframes_years
-        ):
-            return DatabaseStatus(
-                error="Dataframes years do not match normalized dataframes years."
-            )
-        if self._manifest.graph is None:
-            return DatabaseStatus(error="Missing tracking graph.")
-        return DatabaseStatus(ready=True)
-
-    def database_status_dependency(self) -> None:
-        """
-        FastAPI dependency to check the database status.
-        Raises:
-            HTTPException: If the database is not ready or has errors.
-        """
-        status = self.get_database_status()
-        if not status.ready:
-            raise HTTPException(status_code=500, detail=status.error)
-
-    def save_graph(self, zip_file: BinaryIO) -> None:
-        """
-        Save the tracking graph from a zip file containing a single .beaver file.
-        """
-        with zipfile.ZipFile(zip_file, "r") as zip_ref:
-            filenames = zip_ref.namelist()
-            if len(filenames) != 1 or not filenames[0].endswith(".beaver"):
-                raise AptihramyException(
-                    "The zip file must contain a single .beaver file."
-                )
-            self._manifest.graph = filenames[0]
-            zip_ref.extract(filenames[0], self._path_graph)
-
-        self._graph = self._load_graph(self._manifest.graph)
-        self._feature_last_frame_value = self._build_last_frame_values()
-        self._save_manifest()
-
-    def save_dataframes(self, zip_file: BinaryIO, normalized: bool) -> None:
-        """
-        Save dataframes from a zip file containing CSV files in format YYYY.csv.
-        If is_normalized is True, saves to the normalized dataframes path.
-        """
-        if normalized:
-            path_dataframes = self._path_normalized_dataframes
-        else:
-            path_dataframes = self._path_dataframes
-        years = []
-        with zipfile.ZipFile(zip_file, "r") as zip_ref:
-            filenames = zip_ref.namelist()
-            for filename in filenames:
-                if not re.match(r"^\d{4}\.csv$", filename):
-                    raise AptihramyException(
-                        "The zip file must contain CSV files in format YYYY.csv."
-                    )
-                year = filename.split(".")[0]
-                zip_ref.extract(filename, path_dataframes)
-                years.append(year)
-
-        if normalized:
-            self._manifest.normalized_dataframes_years = years
-            self._normalized_dataframes = self._load_dataframes(
-                self._path_normalized_dataframes, years
-            )
-        else:
-            self._manifest.dataframes_years = years
-            self._dataframes = self._load_dataframes(self._path_dataframes, years)
-        self._save_manifest()
-
-    def _save_manifest(self) -> None:
-        """
-        Saves the current manifest to the manifest file.
-        """
-        with open(self._path_manifest, "w") as file:
-            json.dump(self._manifest.model_dump(), file, indent=4)
+        return inner
 
     def _get_feature_indexes(self) -> dict[str, int]:
         """
@@ -407,7 +311,7 @@ class Database:
         return d
 
     def get_tracked_years(self) -> list[int]:
-        return self._manifest.dataframes_years
+        return self._tracker_years
 
     def get_materialized_tracking_chain(
         self, tracker_id: ID

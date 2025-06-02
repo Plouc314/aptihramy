@@ -7,6 +7,7 @@ data/dataframes/*.csv
 data/normalized_dataframes/*.csv
 data/graph/*.beaver
 data/manifest.json
+data/flfv_cache.pickle
 
 # sqlite
 *.db

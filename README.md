@@ -30,8 +30,9 @@
 
 * Start the production server:  
   ```bash
-  docker-compose up --build
+  docker compose up --build
   ```
+  The production server listen on port 8000, it serves both the backend endpoints and the frontend.
 
 ## Backend
 
