@@ -1,7 +1,7 @@
 import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api_types"
-import { useSnackbarQueue } from "./snackbarQueue";
+import { useErrorMessagesStore } from "./stores/errorMessages";
 // Create an Axios instance
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+
 
 const API_BASE_URL = import.meta.env.VITE_FASTAPI_URL || "";
 const DEFAULT_HEADERS = {
@@ -10,6 +10,7 @@ const DEFAULT_HEADERS = {
 
 async function fetchData<T>(endpoint: string, options: RequestInit, params?: Record<string, string | number>): Promise<T> {
     let url = API_BASE_URL + endpoint;
+    const errorMessageStore = useErrorMessagesStore()
 
     if (params) {
         url += "?" + Object.entries(params)
@@ -19,7 +20,7 @@ async function fetchData<T>(endpoint: string, options: RequestInit, params?: Rec
 
     try {
         const response = await fetch(url, options);
-        if (!response.ok) addSnackbar(`HTTP error! Status: ${response.status}`, snackbarTypes.ERROR);
+        if (!response.ok) errorMessageStore.addErrorMessage(`HTTP error! Status: ${response.status}`);
         return await response.json();
     } catch (error) {
         console.error(`Fetch error on ${url}: `, error);

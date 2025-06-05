@@ -90,8 +90,9 @@ import { ref, computed, reactive, StyleValue, onMounted } from "vue";
 import { getColorForMatch } from "@/core/utils";
 import { EditMetricsProps, EditMetricsEmit, RawNormalizedValue } from "../types/types";
 import '../styles/main.css';
-import { useSnackbarQueue } from "@/core/snackbarQueue";
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+import { useErrorMessagesStore } from "@/core/stores/errorMessages";
+
+const errorMessageStore = useErrorMessagesStore()
 
 
 const isReplaceClicked = ref(false)
@@ -165,7 +166,7 @@ function replaceValue() {
 function save() {
     const m = new Map()
     Object.entries(selectedValues).forEach(([year, updatedValue]) => m.set(year, updatedValue))
-    addSnackbar(`Feature: ${props.prettyFeature} saved`, snackbarTypes.INFO)
+errorMessageStore.addInfoMessage(`Feature: ${props.prettyFeature} saved`)
     emit("update-values", props.prettyFeature, m)
 }
 

@@ -31,18 +31,18 @@
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import { EditPageProps, RawNormalizedValue } from "../types/types";
-import { useSnackbarQueue } from "@/core/snackbarQueue";
 import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import { fetchMaterializedFrames } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api_types";
 import { trackedYearsStore } from "@/core/stores/trackedYears";
 import '../styles/main.css';
 import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
+import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 
 
 const props = defineProps<EditPageProps>();
 const error = ref(false)
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+const errorMessageStore = useErrorMessagesStore()
 
 const tfStore = trackedFeaturesStore()
 tfStore.fetchTrackedFeatures()
@@ -92,7 +92,7 @@ function updateValues(prettyFeature: string, yearValues: Map<number, string | nu
 }
 
 function saveSelected() {
-    addSnackbar("To be implemented", snackbarTypes.INFO)
+    errorMessageStore.addInfoMessage("To be implemented")
 }
 
 onMounted(() => {
@@ -105,11 +105,12 @@ onMounted(() => {
 
 
             } else {
-                addSnackbar("Person not found", snackbarTypes.ERROR)
+                errorMessageStore.addErrorMessage("Person not found")
+
                 error.value = true
             }
         }
-        ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+        ).catch(err => errorMessageStore.addErrorMessage(`Error finding the person: ${err}`))
 })
 </script>
 

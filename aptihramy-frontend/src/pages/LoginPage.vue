@@ -34,14 +34,16 @@
 
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/core/api'
-import { useSnackbarQueue } from '@/core/snackbarQueue'
+import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import '../styles/main.css';
 
 
-const { addSnackbar, snackbarTypes } = useSnackbarQueue()
+const errorMessagestore = useErrorMessagesStore()
+const queier = computed(() => errorMessagestore.getQueue)
+
 
 const email = ref('')
 const password = ref('')
@@ -62,11 +64,12 @@ async function handleLogin() {
     login(email.value, password.value)
         .then((token) => {
             localStorage.setItem('token', token)
-            addSnackbar('Successfully logged in', snackbarTypes.INFO)
+            errorMessagestore.addInfoMessage('Successfully logged in')
+            //addSnackbar('Successfully logged in', snackbarTypes.INFO)
             router.push({ name: 'HomePage' })
         })
         .catch(() => {
-            addSnackbar('Invalid email or password', snackbarTypes.ERROR)
+            errorMessagestore.addErrorMessage('Invalid email or password')
         })
 }
 </script>

@@ -18,7 +18,7 @@
         <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
     </v-col>
-
+    {{ queier }}
 </template>
 
 <script setup lang="ts">
@@ -30,14 +30,17 @@ import { FilterRequest, } from '@/types/api_types';
 import '../styles/main.css';
 import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { filterStore } from '@/core/stores/filterStore';
+import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 
 
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+const errorMessageStore =  useErrorMessagesStore()
+
 const tfStore = trackedFeaturesStore()
 const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
+const errorMessagestore = useErrorMessagesStore()
 
+const queier = computed(() => errorMessagestore.getQueue)
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
@@ -131,7 +134,7 @@ function search(): void {
 
         })
         .catch((err) => {
-            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
+            errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
         }).finally(() => {
             querySent.value = false
         })
