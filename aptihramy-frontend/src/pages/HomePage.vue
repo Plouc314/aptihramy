@@ -32,7 +32,6 @@ import { fetchFilteredTrackers } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { filterStore } from '@/core/stores/filterStore';
-import { fi } from 'vuetify/locale';
 
 
 const { addSnackbar, snackbarTypes } = useSnackbarQueue();
@@ -67,7 +66,6 @@ const remainingFeatures = computed<string[]>(() => {
 
 function addFilter(): void {
     fStore.createEmptyFilter()
-
 }
 
 function removeFilter(filter: FilterState): void {
@@ -128,6 +126,7 @@ function search(): void {
             for (const trackerID in response.data) {
                 trackerIDMem.set(trackerID, response.data[trackerID])
             }
+            console.log(trackerIDMem)
             filterResponse.value = trackerIDMem
 
         })

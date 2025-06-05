@@ -27,6 +27,44 @@ async function fetchData<T>(endpoint: string, options: RequestInit, params?: Rec
     }
 }
 
+export async function checkToken(token: string): Promise<void> {
+    let url = API_BASE_URL + "/api/check-token";
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Token check failed: ${response.status} ${response.statusText}`);
+    }
+
+    return;
+}
+
+export async function login(username: string, password: string): Promise<string> {
+    let url = API_BASE_URL + "/auth/jwt/login";
+
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
+
+    const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.access_token;
+}
+
 export async function fetchRoot(): Promise<Root> {
     return fetchData<Root>("/api/", { method: "GET", headers: DEFAULT_HEADERS });
 }

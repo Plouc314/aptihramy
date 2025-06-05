@@ -64,7 +64,7 @@ const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 function getToolTipText(pretty_feature: string, distances: number[]): string {
     const feature_index = tfStore.getTrackedFeatureIndex(pretty_feature, true)
-    return distances[feature_index] == null ? "No information" : `Distance to raw calue: ${distances[feature_index].toFixed(3)}`
+    return distances[feature_index] == null ? "No information" : `Distance to raw value: ${distances[feature_index].toFixed(3)}`
 }
 
 function chipColor(score: number): StyleValue {

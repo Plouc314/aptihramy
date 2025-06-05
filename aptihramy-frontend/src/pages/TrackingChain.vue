@@ -352,7 +352,7 @@ function setupNetwork() {
             zoomTo(selectedNodeID.value)
         } else if (params.edges.length > 0) {
             console.log(params)
-            alert(`You clicked on Edge ${params}`);
+            //alert(`You clicked on Edge ${params}`);
         }
     });
 

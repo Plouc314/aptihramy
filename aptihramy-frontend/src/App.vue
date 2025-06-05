@@ -10,12 +10,16 @@
 <script lang="ts" setup>
 import { trackedFeaturesStore } from './core/stores/trackedFeatures';
 import { trackedYearsStore } from './core/stores/trackedYears';
+import Snackbar from './components/Snackbar.vue';
 
-import Snackbar from './components/Snackbar.vue'
+import {removeToken} from './core/auth';
+
 
 const tfStore = trackedFeaturesStore()
 tfStore.fetchTrackedFeatures()
 const tyStore = trackedYearsStore()
 tyStore.fetchTrackedYears()
+
+removeToken()
 
 </script>

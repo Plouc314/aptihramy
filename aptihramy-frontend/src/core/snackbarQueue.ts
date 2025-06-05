@@ -4,6 +4,7 @@ import { ref, computed, watch } from 'vue';
 const snackbarQueue = ref<Snackbar[]>([]);
 const isSnackbarVisible = ref(false);
 const currentSnackbar = computed(() => snackbarQueue.value[0]);
+
 enum snackbarTypes {
     INFO = "info",
     WARNING = "warning",
@@ -31,7 +32,7 @@ watch(isSnackbarVisible, (visible) => {
     }
 });
 
-function addSnackbar(message: string, color = 'info'): void {
+function addSnackbar(message: string, color = snackbarTypes.INFO): void {
     snackbarQueue.value.push({ message: message, type: color });
     if (!isSnackbarVisible.value) {
         isSnackbarVisible.value = true;
