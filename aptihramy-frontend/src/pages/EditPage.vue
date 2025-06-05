@@ -32,12 +32,13 @@ import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import { EditPageProps, RawNormalizedValue } from "../types/types";
 import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
-import { fetchMaterializedFrames } from "@/core/api";
+import { fetchMaterializedFrames, UNAUTHORIZED } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api_types";
 import { trackedYearsStore } from "@/core/stores/trackedYears";
 import '../styles/main.css';
 import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
+import { useRouter } from "vue-router";
 
 
 const props = defineProps<EditPageProps>();
@@ -105,12 +106,24 @@ onMounted(() => {
 
 
             } else {
+                
                 errorMessageStore.addErrorMessage("Person not found")
 
                 error.value = true
             }
         }
-        ).catch(err => errorMessageStore.addErrorMessage(`Error finding the person: ${err}`))
+        ).catch(err => {
+               if (err.message == UNAUTHORIZED) {
+                        const router = useRouter()
+                        router.push({ name: 'LoginPage' });
+
+                    } else {
+                        const errorMessageStore = useErrorMessagesStore()
+                        errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
+                    }
+                    console.log(err)
+         }
+        )
 })
 </script>
 

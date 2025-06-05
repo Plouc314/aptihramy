@@ -5,6 +5,8 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // C
 import EditPage from '@/pages/EditPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import { getToken } from '@/core/auth'
+import { checkToken } from '@/core/api'
+import { useErrorMessagesStore } from '@/core/stores/errorMessages'
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -39,10 +41,11 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!getToken()
-
+router.beforeEach(async (to, from, next) => {
+  const isAuthenticated = await checkToken()
+  const errorMessageStore = useErrorMessagesStore()
   if (to.meta.requiresAuth && !isAuthenticated) {
+    errorMessageStore.addErrorMessage(`Token expired, redirecting to login page`);
     next('/login')
   } else if (to.path === '/login' && isAuthenticated) {
     next('/')

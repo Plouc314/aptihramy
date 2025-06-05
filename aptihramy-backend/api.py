@@ -222,7 +222,7 @@ async def get_image(filename: str):
     return {"error": "File not found"}
 
 
-@app.post("/api/filter")
+@app.post("/api/filter", dependencies=[Depends(auth.current_active_user)])
 def filter_data(
     request: FilterRequest,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
@@ -255,7 +255,7 @@ def filter_data(
     return FilterResponse(data=data)
 
 
-@app.get("/api/features")
+@app.get("/api/features", dependencies=[Depends(auth.current_active_user)])
 def get_tracked_features(
     data_service: DataService = Depends(DataService.get_instance(ddh)),
 ):
@@ -263,7 +263,7 @@ def get_tracked_features(
     return {"raw_features": raw_features, "pretty_features": pretty_features}
 
 
-@app.get("/api/tracker")
+@app.get("/api/tracker", dependencies=[Depends(auth.current_active_user)])
 def get_tracker_id_information(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
@@ -273,7 +273,7 @@ def get_tracker_id_information(
     )
 
 
-@app.get("/api/tracking_chain")
+@app.get("/api/tracking_chain", dependencies=[Depends(auth.current_active_user)])
 def get_tracking_chain(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
@@ -283,7 +283,7 @@ def get_tracking_chain(
     )
 
 
-@app.get("/api/materialized_frames")
+@app.get("/api/materialized_frames", dependencies=[Depends(auth.current_active_user)])
 def get_materialized_frames(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
@@ -316,7 +316,7 @@ def get_materialized_frames(
     )
 
 
-@app.get("/api/record")
+@app.get("/api/record", dependencies=[Depends(auth.current_active_user)])
 def get_record_values(
     frame_idx: int,
     record_idx: int,
@@ -331,7 +331,7 @@ def get_record_values(
         )
 
 
-@app.get("/api/tracked_years")
+@app.get("/api/tracked_years", dependencies=[Depends(auth.current_active_user)])
 def get_tracked_years(
     data_service: DataService = Depends(DataService.get_instance(ddh)),
 ):

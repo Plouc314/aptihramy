@@ -14,12 +14,6 @@ import { useErrorMessagesStore } from './core/stores/errorMessages';
 import { removeToken } from './core/auth';
 
 const errorMessageStore = useErrorMessagesStore()
-
-const tfStore = trackedFeaturesStore()
-tfStore.fetchTrackedFeatures()
-const tyStore = trackedYearsStore()
-tyStore.fetchTrackedYears()
-
-removeToken()
+//removeToken()
 
 </script>

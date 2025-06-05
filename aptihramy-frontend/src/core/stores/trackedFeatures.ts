@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { fetchTrackedFeatures } from '@/core/api';
+import { fetchTrackedFeatures, UNAUTHORIZED } from '@/core/api';
 import { TrackedFeatures } from '@/types/api_types';
+import { useRouter } from 'vue-router';
+import { useErrorMessagesStore } from './errorMessages';
 
 export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
     state: () => ({ trackedFeatures: null as TrackedFeatures | null }),
@@ -59,6 +61,14 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
                     this.trackedFeatures = data;
                 })
                 .catch((err) => {
+                    if (err.message == UNAUTHORIZED) {
+                        const router = useRouter()
+                        router.push({ name: 'LoginPage' });
+
+                    } else {
+                        const errorMessageStore = useErrorMessagesStore()
+                        errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
+                    }
                     console.error(err);
                 });
         }

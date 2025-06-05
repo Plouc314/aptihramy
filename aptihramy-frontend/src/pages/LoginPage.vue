@@ -65,7 +65,6 @@ async function handleLogin() {
         .then((token) => {
             localStorage.setItem('token', token)
             errorMessagestore.addInfoMessage('Successfully logged in')
-            //addSnackbar('Successfully logged in', snackbarTypes.INFO)
             router.push({ name: 'HomePage' })
         })
         .catch(() => {

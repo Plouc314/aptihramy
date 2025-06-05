@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { fetchTrackedYears } from '@/core/api';
+import { fetchTrackedYears, UNAUTHORIZED } from '@/core/api';
+import { useRouter } from 'vue-router';
+import { useErrorMessagesStore } from './errorMessages';
 
 export const trackedYearsStore = defineStore('trackedYearsStore', {
     state: () => ({ trackedYears: null as number[] | null }),
@@ -26,7 +28,15 @@ export const trackedYearsStore = defineStore('trackedYearsStore', {
                     }
                 })
                 .catch((err) => {
-                    console.error(err);
+                    if (err.message == UNAUTHORIZED) {
+                        const router = useRouter()
+                        router.push({ name: 'LoginPage' });
+
+                    } else {
+                        const errorMessageStore = useErrorMessagesStore()
+                        errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
+                    }
+                    console.log(err)
                 });
         },
 

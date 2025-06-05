@@ -18,7 +18,6 @@
         <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
     </v-col>
-    {{ queier }}
 </template>
 
 <script setup lang="ts">
@@ -28,19 +27,23 @@ import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
 import { FilterRequest, } from '@/types/api_types';
 import '../styles/main.css';
-import { fetchFilteredTrackers } from '@/core/api';
+import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { filterStore } from '@/core/stores/filterStore';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
+import { trackedYearsStore } from '@/core/stores/trackedYears';
+import { useRouter } from 'vue-router';
 
 
-const errorMessageStore =  useErrorMessagesStore()
-
+const errorMessageStore = useErrorMessagesStore()
 const tfStore = trackedFeaturesStore()
+tfStore.fetchTrackedFeatures()
+const tyStore = trackedYearsStore()
+tyStore.fetchTrackedYears()
+
 const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
 const errorMessagestore = useErrorMessagesStore()
-
-const queier = computed(() => errorMessagestore.getQueue)
+const router = useRouter()
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
@@ -134,7 +137,11 @@ function search(): void {
 
         })
         .catch((err) => {
-            errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
+            if (err.message == UNAUTHORIZED) {
+                router.push({ name: 'LoginPage' });
+            } else {
+                errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
+            }
         }).finally(() => {
             querySent.value = false
         })
