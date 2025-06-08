@@ -87,11 +87,6 @@ export type EditMetricsEmit = {
     (e: 'update-values', payload: string, a: Map<number, string | number>): void;
 };
 
-export interface Snackbar {
-    message: string,
-    type: string
-}
-
 export type NodePosition = { x: number, y: number }
 
 export type FrameRecordIdx = { frameIdx: number, recordIdx: number }

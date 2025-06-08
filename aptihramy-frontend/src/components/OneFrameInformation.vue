@@ -52,7 +52,6 @@ import { ref, computed, onMounted, StyleValue } from "vue";
 import { CandidateRecordValues, OneFrameInformationProps } from '../types/types';
 import '../styles/main.css';
 import { fetchPersonValues } from '@/core/api';
-import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
 import { trackedYearsStore } from "@/core/stores/trackedYears";
 import { getEdgeColor } from "@/core/utils";
@@ -60,11 +59,10 @@ import { getEdgeColor } from "@/core/utils";
 
 const props = defineProps<OneFrameInformationProps>();
 
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
 
 function getToolTipText(pretty_feature: string, distances: number[]): string {
     const feature_index = tfStore.getTrackedFeatureIndex(pretty_feature, true)
-    return distances[feature_index] == null ? "No information" : `Distance to raw calue: ${distances[feature_index].toFixed(3)}`
+    return distances[feature_index] == null ? "No information" : `Distance to raw value: ${distances[feature_index].toFixed(3)}`
 }
 
 function chipColor(score: number): StyleValue {

@@ -88,10 +88,10 @@ import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
-import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { trackedYearsStore } from '../core/stores/trackedYears';
 import { getEdgeColor, getNodeColor } from '@/core/utils';
 import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
+import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100
@@ -102,7 +102,7 @@ const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
 const materializedTrackerFrames = ref<MaterializedTrackerFrame[] | null>(null)
 
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+const errorMessageStore = useErrorMessagesStore()
 
 const route = useRoute();
 const router = useRouter();
@@ -352,7 +352,7 @@ function setupNetwork() {
             zoomTo(selectedNodeID.value)
         } else if (params.edges.length > 0) {
             console.log(params)
-            alert(`You clicked on Edge ${params}`);
+            //alert(`You clicked on Edge ${params}`);
         }
     });
 
@@ -433,11 +433,13 @@ onMounted(() => {
                 console.log(data.frames)
                 materializedTrackerFrames.value = data.frames
             } else {
-                addSnackbar("Person not found", snackbarTypes.ERROR)
+            errorMessageStore.addErrorMessage("Person not found")
+
                 error.value = true
             }
         }
-        ).catch(err => addSnackbar(`Error finding the person: ${err}`, snackbarTypes.ERROR))
+        ).catch(err =>         errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
+)
 })
 
 </script>

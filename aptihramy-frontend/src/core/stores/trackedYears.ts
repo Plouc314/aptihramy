@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { fetchTrackedYears } from '@/core/api';
+import { fetchTrackedYears, UNAUTHORIZED } from '@/core/api';
+import { useRouter } from 'vue-router';
+import { useErrorMessagesStore } from './errorMessages';
 
 export const trackedYearsStore = defineStore('trackedYearsStore', {
     state: () => ({ trackedYears: null as number[] | null }),
@@ -26,7 +28,7 @@ export const trackedYearsStore = defineStore('trackedYearsStore', {
                     }
                 })
                 .catch((err) => {
-                    console.error(err);
+                    useErrorMessagesStore().handleError(err)
                 });
         },
 

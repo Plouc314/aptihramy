@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <Snackbar></Snackbar>
+    <v-snackbar-queue v-model="errorMessageStore.queue"> </v-snackbar-queue>
     <v-main>
       <router-view />
     </v-main>
@@ -10,12 +10,10 @@
 <script lang="ts" setup>
 import { trackedFeaturesStore } from './core/stores/trackedFeatures';
 import { trackedYearsStore } from './core/stores/trackedYears';
+import { useErrorMessagesStore } from './core/stores/errorMessages';
+import { removeToken } from './core/auth';
 
-import Snackbar from './components/Snackbar.vue'
-
-const tfStore = trackedFeaturesStore()
-tfStore.fetchTrackedFeatures()
-const tyStore = trackedYearsStore()
-tyStore.fetchTrackedYears()
+const errorMessageStore = useErrorMessagesStore()
+//removeToken()
 
 </script>

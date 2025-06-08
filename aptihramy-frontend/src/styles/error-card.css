@@ -1,6 +1,17 @@
 @import url("./theme.css");
 
 
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    /* Full viewport height */
+    width: 100%;
+    /* Full width */
+}
+
+
 .error-card {
     display: flex;
     justify-content: center;

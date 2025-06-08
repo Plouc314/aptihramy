@@ -18,7 +18,6 @@
         <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
     </v-col>
-
 </template>
 
 <script setup lang="ts">
@@ -28,17 +27,23 @@ import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
 import { FilterRequest, } from '@/types/api_types';
 import '../styles/main.css';
-import { fetchFilteredTrackers } from '@/core/api';
+import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
 import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { useSnackbarQueue } from '@/core/snackbarQueue';
 import { filterStore } from '@/core/stores/filterStore';
-import { fi } from 'vuetify/locale';
+import { useErrorMessagesStore } from '@/core/stores/errorMessages';
+import { trackedYearsStore } from '@/core/stores/trackedYears';
+import { useRouter } from 'vue-router';
 
 
-const { addSnackbar, snackbarTypes } = useSnackbarQueue();
+const errorMessageStore = useErrorMessagesStore()
 const tfStore = trackedFeaturesStore()
-const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
+tfStore.fetchTrackedFeatures()
+const tyStore = trackedYearsStore()
+tyStore.fetchTrackedYears()
 
+const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
+const errorMessagestore = useErrorMessagesStore()
+const router = useRouter()
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
@@ -67,7 +72,6 @@ const remainingFeatures = computed<string[]>(() => {
 
 function addFilter(): void {
     fStore.createEmptyFilter()
-
 }
 
 function removeFilter(filter: FilterState): void {
@@ -128,11 +132,12 @@ function search(): void {
             for (const trackerID in response.data) {
                 trackerIDMem.set(trackerID, response.data[trackerID])
             }
+            console.log(trackerIDMem)
             filterResponse.value = trackerIDMem
 
         })
         .catch((err) => {
-            addSnackbar(`An error occurred: ${err}`, snackbarTypes.ERROR)
+            errorMessageStore.handleError(err)
         }).finally(() => {
             querySent.value = false
         })
