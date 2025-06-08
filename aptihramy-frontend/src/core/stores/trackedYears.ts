@@ -1,36 +1,45 @@
+// stores/trackedYearsStore.ts
 import { defineStore } from 'pinia'
-import { fetchTrackedYears, UNAUTHORIZED } from '@/core/api';
-import { useRouter } from 'vue-router';
-import { useErrorMessagesStore } from './errorMessages';
+import { ref, computed } from 'vue'
+import { fetchTrackedYears } from '@/core/api'
+import { useErrorMessagesStore } from './errorMessages'
 
-export const trackedYearsStore = defineStore('trackedYearsStore', {
-    state: () => ({ trackedYears: null as number[] | null }),
-    getters: {
-        getTrackedYears: (state) => state.trackedYears,
-        getYearFromFrameIdx: (state) => {
-            return (frameIdx: number) => {
-                if (!state.trackedYears) {
-                    return -1
-                }
-                if (0 <= frameIdx && frameIdx < state.trackedYears.length) {
-                    return state.trackedYears[frameIdx]
-                }
-                return -1
-            }
+export const useTrackedYearsStore = defineStore('trackedYearsStore', () => {
+    const trackedYears = ref<number[] | null>(null)
+    const errorStore = useErrorMessagesStore()
+
+    // ✅ Getters
+    const getTrackedYears = computed(() => trackedYears.value)
+
+    const getYearFromFrameIdx = (frameIdx: number): number => {
+        if (!trackedYears.value) return -1
+        if (frameIdx >= 0 && frameIdx < trackedYears.value.length) {
+            return trackedYears.value[frameIdx]
         }
-    },
-    actions: {
-        fetchTrackedYears() {
-            fetchTrackedYears()
-                .then((data) => {
-                    if (data.tracked_years) {
-                        this.trackedYears = data.tracked_years;
-                    }
-                })
-                .catch((err) => {
-                    useErrorMessagesStore().handleError(err)
-                });
-        },
-
+        return -1
     }
-});
+
+    // ✅ Action
+    async function fetchAndStoreTrackedYears() {
+        try {
+            const data = await fetchTrackedYears()
+            if (data.tracked_years) {
+                trackedYears.value = data.tracked_years
+            }
+        } catch (err) {
+            errorStore.handleError(err)
+        }
+    }
+
+    return {
+        // State
+        trackedYears,
+
+        // Getters
+        getTrackedYears,
+        getYearFromFrameIdx,
+
+        // Actions
+        fetchAndStoreTrackedYears
+    }
+})

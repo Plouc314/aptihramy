@@ -28,30 +28,28 @@ import { FilterState, TrackerIDMemory } from "../types/types"
 import { FilterRequest, } from '@/types/api_types';
 import '../styles/main.css';
 import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
-import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { filterStore } from '@/core/stores/filterStore';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
-import { trackedYearsStore } from '@/core/stores/trackedYears';
 import { useRouter } from 'vue-router';
+import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
+import { useTrackedYearsStore } from '@/core/stores/trackedYears';
+import { useFilterStore } from '@/core/stores/filterStore';
 
 
 const errorMessageStore = useErrorMessagesStore()
-const tfStore = trackedFeaturesStore()
-tfStore.fetchTrackedFeatures()
-const tyStore = trackedYearsStore()
-tyStore.fetchTrackedYears()
+const trackedFeatureSotre = useTrackedFeaturesStore()
+trackedFeatureSotre.fetchAndStoreTrackedFeatures()
+const trackedYearsStore = useTrackedYearsStore()
+trackedYearsStore.fetchAndStoreTrackedYears()
 
-const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
-const errorMessagestore = useErrorMessagesStore()
-const router = useRouter()
+const trackedFeatures = computed(() => trackedFeatureSotre.getTrackedFeatures)
+
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
-const fStore = filterStore()
+const filterStore = useFilterStore()
 const filters = computed(() => {
-    console.log(fStore.getStoredFilters)
-    return fStore.getStoredFilters
+    return filterStore.storedFilters
 })
 
 const remainingFeatures = computed<string[]>(() => {
@@ -71,16 +69,16 @@ const remainingFeatures = computed<string[]>(() => {
 })
 
 function addFilter(): void {
-    fStore.createEmptyFilter()
+    filterStore.createEmptyFilter()
 }
 
 function removeFilter(filter: FilterState): void {
-    fStore.removeFilter(filter)
+    filterStore.removeFilter(filter)
     search()
 }
 
 function getSuggestions(column: string): string[] {
-    const index = tfStore.getTrackedFeatureIndex(column)
+    const index = trackedFeatureSotre.getTrackedFeatureIndex(column)
     if (index < 0 || suggestionsFeatureValues.value.length == 0) {
         return []
     }
@@ -88,7 +86,7 @@ function getSuggestions(column: string): string[] {
 }
 
 function editFilter(filter: FilterState): void {
-    fStore.editFilter(filter)
+    filterStore.editFilter(filter)
     search()
 }
 

@@ -1,68 +1,69 @@
+// stores/trackedFeaturesStore.ts
 import { defineStore } from 'pinia'
-import { fetchTrackedFeatures, UNAUTHORIZED } from '@/core/api';
-import { TrackedFeatures } from '@/types/api_types';
-import { useRouter } from 'vue-router';
-import { useErrorMessagesStore } from './errorMessages';
+import { ref, computed } from 'vue'
+import { fetchTrackedFeatures } from '@/core/api'
+import { TrackedFeatures } from '@/types/api_types'
+import { useErrorMessagesStore } from './errorMessages'
 
-export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
-    state: () => ({ trackedFeatures: null as TrackedFeatures | null }),
+export const useTrackedFeaturesStore = defineStore('trackedFeaturesStore', () => {
+    const trackedFeatures = ref<TrackedFeatures | null>(null)
+    const errorStore = useErrorMessagesStore()
 
-    getters: {
-        getTrackedFeatures: (state) => state.trackedFeatures,
+    // ✅ Getters (as computed)
+    const getTrackedFeatures = computed(() => trackedFeatures.value)
 
-        getTrackedFeatureIndex: (state) => {
-            return (feature: string, prettyFeature: boolean = true): number => {
-                if (!state.trackedFeatures) return -1;
+    const getTrackedFeatureIndex = (feature: string, prettyFeature = true): number => {
+        if (!trackedFeatures.value) return -1
+        const features = prettyFeature
+            ? trackedFeatures.value.pretty_features
+            : trackedFeatures.value.raw_features
+        return features.findIndex((f) => f === feature)
+    }
 
-                let features = prettyFeature
-                    ? state.trackedFeatures.pretty_features
-                    : state.trackedFeatures.raw_features;
+    const getRawFromPretty = (prettyFeature: string): string | null => {
+        const index = getTrackedFeatureIndex(prettyFeature, true)
+        return index !== -1 ? trackedFeatures.value?.raw_features[index] ?? null : null
+    }
 
-                return features.findIndex((f) => f === feature);
-            };
-        },
+    const getPrettyFromRaw = (rawFeature: string): string | null => {
+        const index = getTrackedFeatureIndex(rawFeature, false)
+        return index !== -1 ? trackedFeatures.value?.pretty_features[index] ?? null : null
+    }
 
-        getRawFromPretty: (state) => {
-            return (prettyFeature: string) => {
-                const index = trackedFeaturesStore().getTrackedFeatureIndex(prettyFeature);
-                return index !== -1 ? state.trackedFeatures?.raw_features[index] : null;
-            };
-        },
+    const getTrackedFeature = (index: number, prettyFeature = true): string | null => {
+        if (!trackedFeatures.value) return null
 
-        getPrettyFromRaw: (state) => {
-            return (rawFeature: string) => {
-                const index = trackedFeaturesStore().getTrackedFeatureIndex(rawFeature, false);
-                return index !== -1 ? state.trackedFeatures?.pretty_features[index] : null;
-            };
-        },
+        const list = prettyFeature
+            ? trackedFeatures.value.pretty_features
+            : trackedFeatures.value.raw_features
 
-        getTrackedFeature: (state) => {
-            return (index: number, prettyFeature: boolean = true): string | null => {
-                if (!state.trackedFeatures) return null;
+        if (index < 0 || index >= list.length) return null
+        return list[index]
+    }
 
-                if (!(0 <= index && index < state.trackedFeatures.pretty_features.length)) {
-                    return null
-                }
-
-                if (prettyFeature) {
-                    return state.trackedFeatures.pretty_features[index]
-
-                }
-                return state.trackedFeatures?.raw_features[index]
-
-            }
-        }
-    },
-
-    actions: {
-        fetchTrackedFeatures() {
-            fetchTrackedFeatures()
-                .then((data) => {
-                    this.trackedFeatures = data;
-                })
-                .catch((err) => {
-                    useErrorMessagesStore().handleError(err)
-                });
+    // ✅ Actions
+    async function fetchAndStoreTrackedFeatures() {
+        try {
+            const data = await fetchTrackedFeatures()
+            trackedFeatures.value = data
+        } catch (err) {
+            errorStore.handleError(err)
+            console.error(err)
         }
     }
-});
+
+    return {
+        // state
+        trackedFeatures,
+
+        // getters
+        getTrackedFeatures,
+        getTrackedFeatureIndex,
+        getRawFromPretty,
+        getPrettyFromRaw,
+        getTrackedFeature,
+
+        // actions
+        fetchAndStoreTrackedFeatures
+    }
+})

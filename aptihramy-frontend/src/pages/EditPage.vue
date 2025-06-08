@@ -31,27 +31,27 @@
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import { EditPageProps, RawNormalizedValue } from "../types/types";
-import { trackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import { fetchMaterializedFrames, UNAUTHORIZED } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api_types";
-import { trackedYearsStore } from "@/core/stores/trackedYears";
 import '../styles/main.css';
 import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import { useRouter } from "vue-router";
+import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
+import { useTrackedYearsStore } from "@/core/stores/trackedYears";
 
 
 const props = defineProps<EditPageProps>();
 const error = ref(false)
 const errorMessageStore = useErrorMessagesStore()
 
-const tfStore = trackedFeaturesStore()
-tfStore.fetchTrackedFeatures()
-const tyStore = trackedYearsStore()
-tyStore.fetchTrackedYears()
+const trackedFeaturesStore = useTrackedFeaturesStore()
+trackedFeaturesStore.fetchAndStoreTrackedFeatures()
+const trackedYearsStore = useTrackedYearsStore()
+trackedYearsStore.fetchAndStoreTrackedYears()
 
 
-const allFeatures = computed(() => tfStore.getTrackedFeatures ? tfStore.getTrackedFeatures.pretty_features : null)
+const allFeatures = computed(() => trackedFeaturesStore.getTrackedFeatures ? trackedFeaturesStore.getTrackedFeatures.pretty_features : null)
 const expandedFeatureIndexes = ref([])
 const frames = ref<MaterializedTrackerFrame[] | null>(null)
 
@@ -66,7 +66,7 @@ const featureYearValues = computed(() => {
     const featureYearValues = new Map<string, Map<number, RawNormalizedValue[]>>()
 
     for (let featureIndex = 0; featureIndex < allFeatures.value.length; featureIndex++) {
-        const prettyFeature = tfStore.getTrackedFeature(featureIndex)
+        const prettyFeature = trackedFeaturesStore.getTrackedFeature(featureIndex)
 
         const yearValues = new Map<number, RawNormalizedValue[]>()
         for (let i = 0; i < frames.value.length; i++) {
@@ -77,7 +77,7 @@ const featureYearValues = computed(() => {
             }
 
             const allFeatureValues: RawNormalizedValue[] = frame.records.map(r => { return { rawValue: r.record_raw_values[featureIndex], normalizedValue: r.record_normalized_values[featureIndex] } })
-            yearValues.set(tyStore.getYearFromFrameIdx(frame.frame_idx), allFeatureValues)
+            yearValues.set(trackedYearsStore.getYearFromFrameIdx(frame.frame_idx), allFeatureValues)
         }
 
         featureYearValues.set(prettyFeature, yearValues)

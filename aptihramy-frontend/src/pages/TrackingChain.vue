@@ -88,15 +88,15 @@ import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
-import { trackedYearsStore } from '../core/stores/trackedYears';
 import { getEdgeColor, getNodeColor } from '@/core/utils';
 import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
+import { useTrackedYearsStore } from '@/core/stores/trackedYears';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100
 
-const tyStore = trackedYearsStore()
+const trackedYearsStore = useTrackedYearsStore()
 
 const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
@@ -295,7 +295,7 @@ function setupNodes(mFrames: MaterializedTrackerFrame[]) {
         centerX += OFFSET_X
 
         const frame = mFrames[i]
-        const year = tyStore.getYearFromFrameIdx(frame.frame_idx)
+        const year = trackedYearsStore.getYearFromFrameIdx(frame.frame_idx)
         const hasMatchedYear = frame.matching_record_idx != null
         const records = frame.records
 
