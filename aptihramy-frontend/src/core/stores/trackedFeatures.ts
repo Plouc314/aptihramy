@@ -61,15 +61,7 @@ export const trackedFeaturesStore = defineStore('trackedFeaturesStore', {
                     this.trackedFeatures = data;
                 })
                 .catch((err) => {
-                    if (err.message == UNAUTHORIZED) {
-                        const router = useRouter()
-                        router.push({ name: 'LoginPage' });
-
-                    } else {
-                        const errorMessageStore = useErrorMessagesStore()
-                        errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
-                    }
-                    console.error(err);
+                    useErrorMessagesStore().handleError(err)
                 });
         }
     }

@@ -28,15 +28,7 @@ export const trackedYearsStore = defineStore('trackedYearsStore', {
                     }
                 })
                 .catch((err) => {
-                    if (err.message == UNAUTHORIZED) {
-                        const router = useRouter()
-                        router.push({ name: 'LoginPage' });
-
-                    } else {
-                        const errorMessageStore = useErrorMessagesStore()
-                        errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
-                    }
-                    console.log(err)
+                    useErrorMessagesStore().handleError(err)
                 });
         },
 

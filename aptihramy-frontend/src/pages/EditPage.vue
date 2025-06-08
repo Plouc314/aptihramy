@@ -50,6 +50,7 @@ tfStore.fetchTrackedFeatures()
 const tyStore = trackedYearsStore()
 tyStore.fetchTrackedYears()
 
+
 const allFeatures = computed(() => tfStore.getTrackedFeatures ? tfStore.getTrackedFeatures.pretty_features : null)
 const expandedFeatureIndexes = ref([])
 const frames = ref<MaterializedTrackerFrame[] | null>(null)
@@ -106,23 +107,15 @@ onMounted(() => {
 
 
             } else {
-                
+
                 errorMessageStore.addErrorMessage("Person not found")
 
                 error.value = true
             }
         }
         ).catch(err => {
-               if (err.message == UNAUTHORIZED) {
-                        const router = useRouter()
-                        router.push({ name: 'LoginPage' });
-
-                    } else {
-                        const errorMessageStore = useErrorMessagesStore()
-                        errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
-                    }
-                    console.log(err)
-         }
+            errorMessageStore.handleError(err)
+        }
         )
 })
 </script>

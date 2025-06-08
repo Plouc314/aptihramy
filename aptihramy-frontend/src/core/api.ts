@@ -64,7 +64,7 @@ export async function checkToken(): Promise<boolean> {
 
         return response.ok;
     } catch (error) {
-        console.error("Token check failed:", error);
+        console.log("Token check failed:", error);
         return false;
     }
 }

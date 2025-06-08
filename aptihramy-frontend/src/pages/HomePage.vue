@@ -137,11 +137,7 @@ function search(): void {
 
         })
         .catch((err) => {
-            if (err.message == UNAUTHORIZED) {
-                router.push({ name: 'LoginPage' });
-            } else {
-                errorMessageStore.addErrorMessage(`An error occurred: ${err}`)
-            }
+            errorMessageStore.handleError(err)
         }).finally(() => {
             querySent.value = false
         })

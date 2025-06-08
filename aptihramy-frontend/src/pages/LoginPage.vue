@@ -39,10 +39,10 @@ import { useRouter } from 'vue-router'
 import { login } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import '../styles/main.css';
+import { setToken } from '@/core/auth';
 
 
 const errorMessagestore = useErrorMessagesStore()
-const queier = computed(() => errorMessagestore.getQueue)
 
 
 const email = ref('')
@@ -63,7 +63,7 @@ async function handleLogin() {
 
     login(email.value, password.value)
         .then((token) => {
-            localStorage.setItem('token', token)
+            setToken(token)
             errorMessagestore.addInfoMessage('Successfully logged in')
             router.push({ name: 'HomePage' })
         })
