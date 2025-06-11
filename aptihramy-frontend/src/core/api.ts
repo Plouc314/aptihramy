@@ -1,5 +1,5 @@
-import { UpdateBatch } from "@/types/update_types";
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, DiskDataStatus } from "../types/api_types"
+import { DiskDataStatus, UpdateBatch } from "@/types/update";
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api"
 import { getToken } from "./auth";
 import { useErrorMessagesStore } from "./stores/errorMessages";
 

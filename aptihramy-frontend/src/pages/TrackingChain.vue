@@ -87,7 +87,7 @@ import { Network, Edge, Node, IdType } from 'vis-network';
 import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
-import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
+import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api";
 import { getEdgeColor, getNodeColor } from '@/core/utils';
 import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';

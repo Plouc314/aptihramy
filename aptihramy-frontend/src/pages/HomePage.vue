@@ -25,7 +25,7 @@ import DisplayPeople from '@/components/DisplayPeople.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterState, TrackerIDMemory } from "../types/types"
-import { FilterRequest, } from '@/types/api_types';
+import { FilterRequest, } from '@/types/api';
 import '../styles/main.css';
 import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';

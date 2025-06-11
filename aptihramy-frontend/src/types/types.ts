@@ -1,4 +1,4 @@
-import { RecordValuesDiag, trackerID } from "./api_types";
+import { RecordValuesDiag, trackerID } from "./api";
 
 // ─── Basic Utility Types ────────────────────────────────────
 export type NodePosition = { x: number, y: number };

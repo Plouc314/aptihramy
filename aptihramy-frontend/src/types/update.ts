@@ -11,3 +11,8 @@ export interface UpdateBatch {
     accepted: boolean;
     timestamp: string;
 }
+
+export interface DiskDataStatus {
+    ready: boolean;
+    error: string | undefined;
+}
