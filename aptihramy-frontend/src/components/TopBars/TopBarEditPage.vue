@@ -22,8 +22,8 @@
 </template>
 
 <script setup lang="ts">
+import { TopBarEditPageProps } from "../../types";
 import "../../styles/theme.css"
-import { TopBarEditPageProps } from "../../types/types"
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

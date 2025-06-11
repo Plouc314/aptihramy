@@ -27,9 +27,9 @@
 import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import '../styles/main.css';
-import { DisplayPeopleProps } from '../types/types';
-import { trackerID } from '../types/api';
+import { trackerID } from '../types/api/api';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
+import { DisplayPeopleProps } from '../types';
 
 
 const trackedFeaturesStore = useTrackedFeaturesStore()

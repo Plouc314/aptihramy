@@ -16,7 +16,7 @@
 
 import { ref, computed, watch, onMounted } from 'vue';
 import "../styles/main.css";
-import { FilterEmits, FilterProps, FilterState } from '../types/types';
+import { FilterEmits, FilterProps, FilterState } from '../types';
 
 // Define props with types
 const props = defineProps<FilterProps>();

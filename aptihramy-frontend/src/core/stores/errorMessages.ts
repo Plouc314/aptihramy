@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Snackbar, SNACKBAR_TYPES } from '@/types/snackbar'
+import { Snackbar, SNACKBAR_TYPES } from '@/types/components/snackbar'
 import { UNAUTHORIZED } from '../api'
 
 export const useErrorMessagesStore = defineStore('errorMessageStore', () => {

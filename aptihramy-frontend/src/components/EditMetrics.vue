@@ -69,11 +69,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { getColorForMatch } from "@/core/utils";
-import { EditMetricsProps, EditMetricsEmit, IdxRawNormalizedValue, FeatureMatchForYear } from "../types/types";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import "../styles/main.css";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import { useTrackedYearsStore } from "@/core/stores/trackedYears";
+import { EditMetricsEmit, EditMetricsProps, FeatureMatchForYear } from "../types";
 
 const errorMessageStore = useErrorMessagesStore();
 const trackedYearsStore = useTrackedYearsStore()

@@ -1,4 +1,4 @@
-import { trackerID } from './tracker';
+import { trackerID } from "./tracker";
 
 export interface FilterRequest {
     filters: Record<string, string>;

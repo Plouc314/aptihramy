@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fetchTrackedFeatures } from '@/core/api'
-import { TrackedFeatures } from '@/types/api'
+import { TrackedFeatures } from '@/types/api/api'
 import { useErrorMessagesStore } from './errorMessages'
 
 export const useTrackedFeaturesStore = defineStore('trackedFeaturesStore', () => {

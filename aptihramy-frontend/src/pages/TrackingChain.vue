@@ -82,16 +82,16 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "vue";
-import { FrameRecordIdx, NodePosition, TrackinChainProps } from "../types/types"
 import { Network, Edge, Node, IdType } from 'vis-network';
 import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
-import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api";
+import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api/api";
 import { getEdgeColor, getNodeColor } from '@/core/utils';
 import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
+import { FrameRecordIdx, NodePosition, TrackinChainProps } from '../types';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100

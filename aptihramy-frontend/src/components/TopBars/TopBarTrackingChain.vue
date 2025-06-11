@@ -28,8 +28,8 @@
 </template>
 
 <script setup lang="ts">
+import { TopBarTrackingChainProps } from "../../types";
 import "../../styles/theme.css"
-import { TopBarProps, TopBarTrackingChainProps } from "../../types/types"
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

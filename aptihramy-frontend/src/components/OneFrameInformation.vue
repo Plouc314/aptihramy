@@ -49,12 +49,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, StyleValue } from "vue";
-import { CandidateRecordValues, OneFrameInformationProps } from '../types/types';
 import '../styles/main.css';
 import { fetchPersonValues } from '@/core/api';
 import { getEdgeColor } from "@/core/utils";
 import { useTrackedYearsStore } from "@/core/stores/trackedYears";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
+import { CandidateRecordValues, OneFrameInformationProps } from "../types";
 
 
 const props = defineProps<OneFrameInformationProps>();

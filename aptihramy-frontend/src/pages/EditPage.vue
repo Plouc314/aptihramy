@@ -25,13 +25,13 @@
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
-import { EditPageProps, FeatureYearMatchMap, IdxRawNormalizedValue, FeatureMatchForYear, FrameIdxRecordIdxValue } from "../types/types";
 import { fetchMaterializedFrames, postUpdateBatch } from "@/core/api";
-import { MaterializedTrackerFrame } from "@/types/api";
+import { MaterializedTrackerFrame } from "@/types/api/api";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import "../styles/main.css";
-import { UpdateBatch, UpdateEntry } from "@/types/update";
+import { UpdateBatch, UpdateEntry } from "@/types/api/update";
+import { EditPageProps, FeatureMatchForYear, FeatureYearMatchMap, FrameIdxRecordIdxValue } from "../types";
 
 const props = defineProps<EditPageProps>();
 const errorMessageStore = useErrorMessagesStore();
