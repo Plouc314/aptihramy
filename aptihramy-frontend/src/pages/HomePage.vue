@@ -29,7 +29,6 @@ import { FilterRequest, } from '@/types/api_types';
 import '../styles/main.css';
 import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
-import { useRouter } from 'vue-router';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
 import { useFilterStore } from '@/core/stores/filterStore';
@@ -48,16 +47,14 @@ const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
 const filterStore = useFilterStore()
-const filters = computed(() => {
-    return filterStore.storedFilters
-})
+const filters = filterStore.storedFilters
 
 const remainingFeatures = computed<string[]>(() => {
     if (!trackedFeatures.value) {
         return [] as string[]
     }
 
-    const usedColumns: string[] = filters.value.map(value => value.feature).filter(v => v !== "")
+    const usedColumns: string[] = filters.map(value => value.feature).filter(v => v !== "")
     const ret: string[] = []
     for (let i = 0; i < trackedFeatures.value.pretty_features.length; i++) {
         const prettyFeature = trackedFeatures.value.pretty_features[i]
@@ -112,11 +109,12 @@ watch(filterResponse, (newFilterResponse) => {
 function search(): void {
 
     const featureSearchValue = new Map<string, string>();
-    if (filters.value && !filters.value.some(v => v.input && v.input.length > 2) || querySent.value) {
+    if (filters && !filters.some(v => v.input && v.input.length > 2) || querySent.value) {
         return
     }
 
-    for (const filter of filters.value) {
+    console.log("Send search")
+    for (const filter of filters) {
         if (trackedFeatures.value.pretty_features.includes(filter.feature)) {
             featureSearchValue.set(filter.feature, filter.input)
         }
@@ -130,9 +128,7 @@ function search(): void {
             for (const trackerID in response.data) {
                 trackerIDMem.set(trackerID, response.data[trackerID])
             }
-            console.log(trackerIDMem)
             filterResponse.value = trackerIDMem
-
         })
         .catch((err) => {
             errorMessageStore.handleError(err)

@@ -3,16 +3,9 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { FilterState } from '@/types/types'
 
-const FILTER_STORAGE_KEY = 'filter-store'
-const ID_STORAGE_KEY = 'filter-store-id'
-
 export const useFilterStore = defineStore('filterStore', () => {
-    // Load from localStorage or default
-    const storedFilters = ref<FilterState[]>(
-        JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) || '[]') || [{ id: 1, feature: '', input: '' }]
-    )
-    const id = ref<number>(parseInt(localStorage.getItem(ID_STORAGE_KEY) || '1', 10))
-
+    const storedFilters = ref<FilterState[]>([{ id: 1, feature: '', input: '' }])
+    const id = ref(1)
     function createEmptyFilter() {
         id.value += 1
         storedFilters.value.push({ id: id.value, feature: '', input: '' })
@@ -39,17 +32,10 @@ export const useFilterStore = defineStore('filterStore', () => {
     }
 
     function removeFilter(filter: FilterState) {
-        storedFilters.value = storedFilters.value.filter((f) => f.id !== filter.id)
+        const filtered = storedFilters.value.filter((f) => f.id !== filter.id)
+        storedFilters.value.splice(0)
+        storedFilters.value.push(...filtered)
     }
-
-    // 🔁 Auto-persist to localStorage
-    watch(storedFilters, (val) => {
-        localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(val))
-    }, { deep: true })
-
-    watch(id, (val) => {
-        localStorage.setItem(ID_STORAGE_KEY, val.toString())
-    })
 
     return {
         storedFilters,

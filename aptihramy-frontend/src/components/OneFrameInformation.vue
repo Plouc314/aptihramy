@@ -52,16 +52,16 @@ import { ref, computed, onMounted, StyleValue } from "vue";
 import { CandidateRecordValues, OneFrameInformationProps } from '../types/types';
 import '../styles/main.css';
 import { fetchPersonValues } from '@/core/api';
-import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { trackedYearsStore } from "@/core/stores/trackedYears";
 import { getEdgeColor } from "@/core/utils";
+import { useTrackedYearsStore } from "@/core/stores/trackedYears";
+import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 
 
 const props = defineProps<OneFrameInformationProps>();
 
 
 function getToolTipText(pretty_feature: string, distances: number[]): string {
-    const feature_index = tfStore.getTrackedFeatureIndex(pretty_feature, true)
+    const feature_index = trackedFeatureStore.getTrackedFeatureIndex(pretty_feature, true)
     return distances[feature_index] == null ? "No information" : `Distance to raw value: ${distances[feature_index].toFixed(3)}`
 }
 
@@ -72,8 +72,8 @@ function chipColor(score: number): StyleValue {
 }
 
 const error = ref(false)
-const tfStore = trackedFeaturesStore()
-const tyStore = trackedYearsStore()
+const trackedFeatureStore = useTrackedFeaturesStore()
+const trackedYearsStore = useTrackedYearsStore()
 
 function showPage() {
     console.log("TO BE IMPLEMENTED")
@@ -82,7 +82,7 @@ function showPage() {
 
 const frameInformation = computed(() => {
     const all_feature_values = new Map<string, CandidateRecordValues>()
-    const trackedFeatures = tfStore.getTrackedFeatures.pretty_features
+    const trackedFeatures = trackedFeatureStore.getTrackedFeatures.pretty_features
 
 
     for (let i = 0; i < trackedFeatures.length; i++) {
@@ -105,14 +105,14 @@ const frameInformation = computed(() => {
     }
 
 
-    all_feature_values.set("Annee", { raw_value: tyStore.getYearFromFrameIdx(props.frameIdx), normalized_value: null, memory: null, distances: null, score: null })
+    all_feature_values.set("Annee", { raw_value: trackedYearsStore.getYearFromFrameIdx(props.frameIdx), normalized_value: null, memory: null, distances: null, score: null })
     all_feature_values.set("Index dans le fichier", { raw_value: props.recordIdx + 2, normalized_value: null, memory: null, distances: null, score: null })
     return all_feature_values
 
 })
 
-tfStore.fetchTrackedFeatures()
-tyStore.fetchTrackedYears()
+trackedFeatureStore.fetchAndStoreTrackedFeatures()
+trackedYearsStore.fetchAndStoreTrackedYears()
 
 </script>
 

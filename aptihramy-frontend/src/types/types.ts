@@ -1,13 +1,30 @@
 import { RecordValuesDiag, trackerID } from "./api_types";
 
-// Define the shape of a record
-export interface RecordType {
-    [key: string]: string | number
+// ─── Basic Utility Types ────────────────────────────────────
+export type NodePosition = { x: number, y: number };
+export type FrameRecordIdx = { frameIdx: number, recordIdx: number };
+export type TrackerIDMemory = Map<trackerID, string[][]>;
+export type ColumnRows = Map<string, string[]>;
+export type RecordType = { [key: string]: string | number };
+
+// ─── Raw & Normalized Value Types ───────────────────────────
+export type IdxRawNormalizedValue = {
+    recordIdx: number;
+    rawValue: string | number;
+    normalizedValue: string | number;
+};
+
+export interface FeatureMatchForYear {
+    matchingRecordIndex: number;
+    candidates: IdxRawNormalizedValue[];
 }
 
-export type TrackerIDMemory = Map<trackerID, string[][]>
+// Feature -> year -> raw and normalized of the matching record and the candidates records
+export type FeatureYearMatchMap = Map<string, Map<number, FeatureMatchForYear>>;
 
+// ─── Component Props ────────────────────────────────────────
 
+// -- Top Bar
 export interface TopBarProps {
     resetZoom?: Function;
     goToEditPage?: Function;
@@ -25,30 +42,47 @@ export interface TopBarEditPageProps {
     title: string;
 }
 
-export type ColumnRows = Map<string, string[]>
+// -- Edit Page
+export interface EditPageProps {
+    trackerID: trackerID;
+}
+
+export interface EditMetricsProps {
+    prettyFeature: string;
+    frameIdxValues: Map<number, FeatureMatchForYear>;
+    updatedValues: Map<number, string | number> | undefined;
+}
+
+export interface FrameIdxRecordIdxValue {
+    frameIdx: number,
+    recordIdx: number,
+    value: string | number
+}
+
+export type EditMetricsEmit = {
+    (event: 'update-values', prettyFeature: string, frameRecordValue: FrameIdxRecordIdxValue[]): void;
+};
+
+// -- Tracking & People
+export interface TrackinChainProps {
+    trackerID: trackerID;
+}
 
 export interface DisplayPeopleProps {
-    data: TrackerIDMemory
+    data: TrackerIDMemory;
     isLoading: boolean;
 }
 
+// -- Frame Details
 export interface OneFrameInformationProps {
-    recordValuesDiagnostic: RecordValuesDiag | null,
-    frameIdx: number,
-    recordIdx: number,
-    memory: string[][] | null,
+    recordValuesDiagnostic: RecordValuesDiag | null;
+    frameIdx: number;
+    recordIdx: number;
+    memory: string[][] | null;
     nbColumns: number;
 }
 
-export interface CandidateRecordValues {
-    raw_value: string | number,
-    normalized_value: string | number | null,
-    memory: (string | number)[] | null
-    distances: number[] | null
-    score: number | null
-}
-
-
+// -- Filtering
 export interface FilterState {
     id: number;
     feature: string;
@@ -58,8 +92,8 @@ export interface FilterState {
 export interface FilterProps {
     canRemove: boolean;
     id: number;
-    feature?: string 
-    value?: string
+    feature?: string;
+    value?: string;
     remainingFeatures: string[];
     suggestions: string[];
 }
@@ -67,30 +101,13 @@ export interface FilterProps {
 export type FilterEmits = {
     (event: 'edit-filter', payload: FilterState): void;
     (event: 'delete-filter', payload: FilterState): void;
-}
-
-export interface TrackinChainProps {
-    trackerID: trackerID
-}
-
-export interface EditPageProps {
-    trackerID: trackerID
-}
-
-export interface EditMetricsProps {
-    prettyFeature: string
-    yearValues: Map<number, RawNormalizedValue[]>
-    updatedValues: Map<number, string | number> | undefined
-}
-
-export type EditMetricsEmit = {
-    (e: 'update-values', payload: string, a: Map<number, string | number>): void;
 };
 
-export type NodePosition = { x: number, y: number }
-
-export type FrameRecordIdx = { frameIdx: number, recordIdx: number }
-
-export type RawNormalizedValue = { rawValue: string | number, normalizedValue: string | number }
-
-
+// -- Candidates
+export interface CandidateRecordValues {
+    raw_value: string | number;
+    normalized_value: string | number | null;
+    memory: (string | number)[] | null;
+    distances: number[] | null;
+    score: number | null;
+}

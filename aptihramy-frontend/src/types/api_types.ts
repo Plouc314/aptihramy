@@ -44,7 +44,9 @@ export interface RecordDiagnostics {
 
 export interface RecordValuesDiag {
     record_idx: number,
+    // List of raw values for all features (features are always sorted the same way)
     record_raw_values: (string | number)[],
+    // List of normalized values for all features 
     record_normalized_values: (string | number)[],
     record_diagnostics: RecordDiagnostics | null
 }
@@ -52,6 +54,7 @@ export interface RecordValuesDiag {
 export interface MaterializedTrackerFrame {
     frame_idx: number,
     matching_record_idx: number | null,
+    // Matching record (if any) and candidates records (if any)
     records: RecordValuesDiag[],
     memory: string[][] | null,
 }
@@ -59,4 +62,9 @@ export interface MaterializedTrackerFrame {
 
 export interface TrackerInformation {
     frames: MaterializedTrackerFrame[] | null
+}
+
+export interface DiskDataStatus {
+    ready: boolean,
+    error: string | null | undefined
 }

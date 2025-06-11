@@ -22,5 +22,6 @@ declare module 'vue-router/auto-routes' {
     '/HomePage': RouteRecordInfo<'/HomePage', '/HomePage', Record<never, never>, Record<never, never>>,
     '/LoginPage': RouteRecordInfo<'/LoginPage', '/LoginPage', Record<never, never>, Record<never, never>>,
     '/TrackingChain': RouteRecordInfo<'/TrackingChain', '/TrackingChain', Record<never, never>, Record<never, never>>,
+    '/UploadPage': RouteRecordInfo<'/UploadPage', '/UploadPage', Record<never, never>, Record<never, never>>,
   }
 }

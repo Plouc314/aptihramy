@@ -28,12 +28,12 @@ import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import '../styles/main.css';
 import { DisplayPeopleProps } from '../types/types';
-import { trackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { trackerID } from '../types/api_types';
+import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 
 
-const tfStore = trackedFeaturesStore()
-const tracked_features = computed(() => tfStore.getTrackedFeatures)
+const trackedFeaturesStore = useTrackedFeaturesStore()
+const tracked_features = computed(() => trackedFeaturesStore.getTrackedFeatures)
 
 
 // Define props

@@ -11,11 +11,21 @@ export const useTrackedYearsStore = defineStore('trackedYearsStore', () => {
     // ✅ Getters
     const getTrackedYears = computed(() => trackedYears.value)
 
-    const getYearFromFrameIdx = (frameIdx: number): number => {
+    function getYearFromFrameIdx(frameIdx: number): number {
         if (!trackedYears.value) return -1
         if (frameIdx >= 0 && frameIdx < trackedYears.value.length) {
             return trackedYears.value[frameIdx]
         }
+        return -1
+    }
+
+    function getFrameIdxFromYear(year: number) : number {
+        if(!trackedYears.value) return -1
+
+        if(year <= trackedYears.value[0] && year <= trackedYears.value[trackedYears.value.length-1]){
+            return trackedYears.value.findIndex(y => y === year)
+        }
+        
         return -1
     }
 
@@ -38,6 +48,7 @@ export const useTrackedYearsStore = defineStore('trackedYearsStore', () => {
         // Getters
         getTrackedYears,
         getYearFromFrameIdx,
+        getFrameIdxFromYear,
 
         // Actions
         fetchAndStoreTrackedYears

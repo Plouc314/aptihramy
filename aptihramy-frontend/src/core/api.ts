@@ -1,4 +1,5 @@
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api_types"
+import { UpdateBatch } from "@/types/update_types";
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears, DiskDataStatus } from "../types/api_types"
 import { getToken } from "./auth";
 import { useErrorMessagesStore } from "./stores/errorMessages";
 
@@ -44,9 +45,13 @@ async function fetchData<T>(
 
 }
 
+export async function postUpdateBatch(batch: UpdateBatch): Promise<void> {
+    return fetchData<void>("/api/update/batch", { method: "POST", body: JSON.stringify(batch) });
+}
+
 export async function checkToken(): Promise<boolean> {
     const url = API_BASE_URL + "/api/check-token";
-    
+
     const token = getToken();
 
     if (!token) {
@@ -90,6 +95,9 @@ export async function login(username: string, password: string): Promise<string>
     return data.access_token;
 }
 
+export async function checkDiskDataStatus(): Promise<DiskDataStatus> {
+    return fetchData<DiskDataStatus>("/api/disk-data-status", { method: "GET" })
+}
 export async function fetchRoot(): Promise<Root> {
     return fetchData<Root>("/api/", { method: "GET" });
 }
