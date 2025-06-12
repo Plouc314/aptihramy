@@ -1,7 +1,7 @@
 // stores/filterStore.ts
+import { FilterState } from '@/types/components/filter'
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { FilterState } from '@/types/types'
 
 export const useFilterStore = defineStore('filterStore', () => {
     const storedFilters = ref<FilterState[]>([{ id: 1, feature: '', input: '' }])

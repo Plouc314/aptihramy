@@ -5,8 +5,9 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // C
 import EditPage from '@/pages/EditPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import { getToken } from '@/core/auth'
-import { checkToken } from '@/core/api'
+import { checkDiskDataStatus, checkToken } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages'
+import UploadPage from '@/pages/UploadPage.vue'
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -15,6 +16,12 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
+    name: 'UploadPage',
+    component: UploadPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/home-page',
     name: 'HomePage',
     component: HomePage,
     meta: { requiresAuth: true }
@@ -42,17 +49,34 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const isAuthenticated = await checkToken()
-  const errorMessageStore = useErrorMessagesStore()
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    errorMessageStore.addErrorMessage(`Token expired, redirecting to login page`);
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
-    next('/')
-  } else {
-    next()
+  const errorMessageStore = useErrorMessagesStore();
+
+  try {
+    const isAuthenticated = await checkToken();
+
+    if (to.meta.requiresAuth && !isAuthenticated) {
+      errorMessageStore.addErrorMessage('Token expired, redirecting to login page');
+      return next('/login');
+    }
+
+    // First time opening the web site
+    if (from.fullPath === '/' && to.fullPath === '/' && isAuthenticated) {
+      const databaseStatus = await checkDiskDataStatus();
+
+      if (databaseStatus.ready) {
+        return next('/home-page');
+      }
+    }
+
+    next(); // default proceed
+  } catch (error) {
+    // Handle any unexpected errors, optionally show message or log
+    errorMessageStore.addErrorMessage('An unexpected error occurred during navigation.');
+    console.error('Router guard error:', error);
+    next(false); // Cancel navigation on error
   }
-})
+});
+
 // Workaround for https://github.com/vitejs/vite/issues/11804
 router.onError((err: Error | null, to: any) => {
   if (err?.message?.includes?.('Failed to fetch dynamically imported module')) {

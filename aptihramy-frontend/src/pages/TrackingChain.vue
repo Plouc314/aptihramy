@@ -1,5 +1,20 @@
 <template>
-    <TopBarTrackingChain :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title=""></TopBarTrackingChain>
+    <TopBar title="" :goBackBtn="true">
+        <v-btn color="secondary" size="large" class="mx-2" @click="resetZoom">
+            <template v-slot:prepend>
+                <v-icon>mdi mdi-restore</v-icon>
+            </template>
+            Reset zoom
+        </v-btn>
+
+        <v-btn color="secondary" size="large" class="mx-2" @click="goToEditPage">
+            <template v-slot:prepend>
+                <v-icon>mdi mdi-pencil</v-icon>
+            </template>
+            Edit page
+        </v-btn>
+    </TopBar>
+
     <v-col v-if="materializedTrackerFrames">
         <!-- Navigation Buttons -->
         <v-row justify="center" align="center">
@@ -88,7 +103,7 @@ import '../styles/main.css';
 import { fetchMaterializedFrames } from "@/core/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api/api";
 import { getEdgeColor, getNodeColor } from '@/core/utils';
-import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
+import TopBar from '@/components/TopBars/TopBar.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
 import { FrameRecordIdx, NodePosition, TrackinChainProps } from '../types';
@@ -433,13 +448,13 @@ onMounted(() => {
                 console.log(data.frames)
                 materializedTrackerFrames.value = data.frames
             } else {
-            errorMessageStore.addErrorMessage("Person not found")
+                errorMessageStore.addErrorMessage("Person not found")
 
                 error.value = true
             }
         }
-        ).catch(err =>         errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
-)
+        ).catch(err => errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
+        )
 })
 
 </script>

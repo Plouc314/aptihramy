@@ -65,7 +65,7 @@ async function handleLogin() {
         .then((token) => {
             setToken(token)
             errorMessagestore.addInfoMessage('Successfully logged in')
-            router.push({ name: 'HomePage' })
+            router.push({ name: 'UploadPage' })
         })
         .catch(() => {
             errorMessagestore.addErrorMessage('Invalid email or password')

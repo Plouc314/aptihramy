@@ -1,6 +1,14 @@
 <template>
     <v-col>
-        <TopBarEditPage title="Edit Page" :save="saveSelectedValues" />
+        <TopBar title="Edit page" :goBackBtn="true">
+            <v-btn color="secondary" size="large" class="mx-2" @click="saveSelectedValues">
+                <template v-slot:prepend>
+                    <v-icon>mdi mdi-content-save</v-icon>
+                </template>
+                Save
+            </v-btn>
+        </TopBar>
+
         <v-progress-circular v-if="!featureYearValues && !error" indeterminate :size="80" :width="10"
             class="loading-spinner" />
         <v-card v-else-if="error" class="error-card">
@@ -24,7 +32,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
-import TopBarEditPage from "@/components/TopBars/TopBarEditPage.vue";
+import TopBar from "@/components/TopBars/TopBar.vue";
 import { fetchMaterializedFrames, postUpdateBatch } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api/api";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";

@@ -16,3 +16,7 @@ export interface DiskDataStatus {
     ready: boolean;
     error: string | undefined;
 }
+
+export interface DiskError {
+    detail: string
+}

@@ -1,8 +1,5 @@
 <template>
     <v-card class="display-card">
-        <v-row>
-            <v-card-title class="text-h6">Person Matching</v-card-title>
-        </v-row>
 
         <!-- Table Header -->
         <v-row class="table-header-row">
@@ -58,12 +55,12 @@ const handleRowClick = (id: trackerID): void => {
 
 <style scoped>
 .display-card {
+    height: 100%;
     border-radius: 8px;
     box-shadow: 0 4px 8px "box-shadow";
     background-color: var(--background);
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
     overflow: hidden;
     border-radius: 12px;
     color: "surface"

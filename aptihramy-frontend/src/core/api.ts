@@ -1,4 +1,4 @@
-import { DiskDataStatus, UpdateBatch } from "@/types/api/update";
+import { DiskDataStatus, DiskError, UpdateBatch } from "@/types/api/update";
 import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api/api"
 import { getToken } from "./auth";
 import { useErrorMessagesStore } from "./stores/errorMessages";
@@ -11,7 +11,8 @@ export const UNAUTHORIZED = "Unauthorized"
 async function fetchData<T>(
     endpoint: string,
     options: RequestInit,
-    params?: Record<string, string | number>
+    params?: Record<string, string | number>,
+    contentType: string | null = "application/json"
 ): Promise<T> {
     let url = API_BASE_URL + endpoint;
     const errorMessageStore = useErrorMessagesStore();
@@ -22,9 +23,12 @@ async function fetchData<T>(
 
     const token = localStorage.getItem("token");
     const headers: HeadersInit = {
-        "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+
+    if (contentType !== null) {
+        headers["Content-Type"] = contentType;
+    }
 
     const response = await fetch(url, {
         ...options,
@@ -37,12 +41,7 @@ async function fetchData<T>(
         throw new Error(UNAUTHORIZED)
     }
 
-    if (!response.ok) {
-        errorMessageStore.addErrorMessage(`HTTP error! Status: ${response.status}`);
-    }
-
     return await response.json();
-
 }
 
 export async function postUpdateBatch(batch: UpdateBatch): Promise<void> {
@@ -95,9 +94,23 @@ export async function login(username: string, password: string): Promise<string>
     return data.access_token;
 }
 
+export async function uploadDataframesToServer(file: File, normalized: boolean): Promise<void | DiskError> {
+
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchData<void | DiskError>("/api/upload/dataframes", { method: "POST", body: formData }, { normalized: normalized ? "true" : "false" }, null)
+};
+
+export async function uploadBeaverFileToServer(file: File): Promise<void | DiskError> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchData<void | DiskError>("/api/upload/graph", { method: "POST", body: formData }, undefined, null)
+};
+
 export async function checkDiskDataStatus(): Promise<DiskDataStatus> {
     return fetchData<DiskDataStatus>("/api/disk-data-status", { method: "GET" })
 }
+
 export async function fetchRoot(): Promise<Root> {
     return fetchData<Root>("/api/", { method: "GET" });
 }

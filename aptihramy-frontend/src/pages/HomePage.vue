@@ -1,6 +1,9 @@
 <template>
+    <TopBar title="Find a person" :goBackBtn="false"></TopBar>
     <v-col>
-        <v-card class="header-card">
+        <v-progress-circular v-if="!trackedFeatures || !trackedYears" indeterminate :size="80" :width="10"
+            class="loading-spinner"></v-progress-circular>
+        <v-card v-else class="header-card">
             <v-row v-for="filter in filters" :key="filter.id" class="filter">
                 <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-features="remainingFeatures"
                     :suggestions="getSuggestions(filter.feature)" @delete-filter="removeFilter"
@@ -15,13 +18,16 @@
         </v-card>
         <v-progress-circular v-if="querySent" indeterminate :size="80" :width="10"
             class="loading-spinner"></v-progress-circular>
-        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
+
+        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
+            class="display-people"></display-people>
     </v-col>
 </template>
 
 <script setup lang="ts">
 import DisplayPeople from '@/components/DisplayPeople.vue';
+import TopBar from '@/components/TopBars/TopBar.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterRequest, } from '@/types/api/api';
@@ -35,13 +41,13 @@ import { FilterState, TrackerIDMemory } from '@/types';
 
 
 const errorMessageStore = useErrorMessagesStore()
-const trackedFeatureSotre = useTrackedFeaturesStore()
-trackedFeatureSotre.fetchAndStoreTrackedFeatures()
+const trackedFeatureStore = useTrackedFeaturesStore()
+trackedFeatureStore.fetchAndStoreTrackedFeatures()
 const trackedYearsStore = useTrackedYearsStore()
 trackedYearsStore.fetchAndStoreTrackedYears()
 
-const trackedFeatures = computed(() => trackedFeatureSotre.getTrackedFeatures)
-
+const trackedFeatures = computed(() => trackedFeatureStore.getTrackedFeatures)
+const trackedYears = computed(() => trackedYearsStore.trackedYears)
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
@@ -75,7 +81,7 @@ function removeFilter(filter: FilterState): void {
 }
 
 function getSuggestions(column: string): string[] {
-    const index = trackedFeatureSotre.getTrackedFeatureIndex(column)
+    const index = trackedFeatureStore.getTrackedFeatureIndex(column)
     if (index < 0 || suggestionsFeatureValues.value.length == 0) {
         return []
     }
@@ -142,6 +148,10 @@ onMounted(() => search())
 
 
 <style scoped>
+.display-people {
+    height: 75vh;
+}
+
 .header-card {
     padding: 30px;
     background-color: "background";
@@ -156,22 +166,6 @@ onMounted(() => search())
     gap: 16px;
 }
 
-.filter-select {
-    flex: 1;
-}
-
-.filter-select .v-label {
-    color: "text-secondary";
-    font-weight: bold;
-}
-
-.filter-select .v-input__control {
-    min-height: 40px;
-}
-
-.filter-select .v-select__selection {
-    color: "text-primary";
-}
 
 .loading-spinner {
     position: fixed;

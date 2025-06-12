@@ -9,3 +9,4 @@ export * from "./components/people";
 export * from "./components/frame";
 export * from "./components/tracking";
 export * from "./components/candidates";
+export * from "./components/upload"
