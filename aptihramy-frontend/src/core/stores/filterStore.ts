@@ -1,46 +1,48 @@
+// stores/filterStore.ts
+import { FilterState } from '@/types/components/filter'
 import { defineStore } from 'pinia'
-import { fetchTrackedFeatures } from '@/core/api';
-import { TrackedFeatures } from '@/types/api_types';
-import { FilterState } from '@/types/types';
+import { ref, watch } from 'vue'
 
-export const filterStore = defineStore('filterStore', {
-    state: () => ({ storedFilters: [{ id: 1, feature: "", input: "" }] as FilterState[], id: 1 }),
-
-    getters: {
-        getStoredFilters: (state) => state.storedFilters,
-    },
-
-    actions: {
-        createEmptyFilter() {
-            this.id += 1
-            this.storedFilters.push({ id: this.id, feature: "", input: "" })
-
-        },
-        findIndexValue(id: number): [number, FilterState] {
-            for (let i = 0; i < this.storedFilters.length; i++) {
-                let value = this.storedFilters[i]
-                if (value.id === id) {
-                    return [i, value]
-                }
-            }
-            return [-1, { id: 0, feature: "", input: "" }]
-        },
-        editFilter(filter: FilterState) {
-            let [index, currentValue] = this.findIndexValue(filter.id)
-
-            if (index < 0) {
-                this.storedFilters.addFilter(filter)
-
-            } else {
-                currentValue.feature = filter.feature
-                currentValue.input = filter.input
-                this.storedFilters[index] = currentValue
-            }
-
-        },
-        removeFilter(filter: FilterState) {
-            this.storedFilters = this.storedFilters.filter(f => f.id !== filter.id)
-        }
-
+export const useFilterStore = defineStore('filterStore', () => {
+    const storedFilters = ref<FilterState[]>([{ id: 1, feature: '', input: '' }])
+    const id = ref(1)
+    function createEmptyFilter() {
+        id.value += 1
+        storedFilters.value.push({ id: id.value, feature: '', input: '' })
     }
-});
+
+    function findIndexValue(targetId: number): [number, FilterState] {
+        for (let i = 0; i < storedFilters.value.length; i++) {
+            const value = storedFilters.value[i]
+            if (value.id === targetId) {
+                return [i, value]
+            }
+        }
+        return [-1, { id: 0, feature: '', input: '' }]
+    }
+
+    function editFilter(filter: FilterState) {
+        const [index, currentValue] = findIndexValue(filter.id)
+
+        if (index < 0) {
+            storedFilters.value.push(filter)
+        } else {
+            storedFilters.value[index] = { ...currentValue, ...filter }
+        }
+    }
+
+    function removeFilter(filter: FilterState) {
+        const filtered = storedFilters.value.filter((f) => f.id !== filter.id)
+        storedFilters.value.splice(0)
+        storedFilters.value.push(...filtered)
+    }
+
+    return {
+        storedFilters,
+        id,
+        createEmptyFilter,
+        findIndexValue,
+        editFilter,
+        removeFilter
+    }
+})

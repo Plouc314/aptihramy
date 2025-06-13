@@ -1,5 +1,20 @@
 <template>
-    <TopBarTrackingChain :go-to-edit-page="goToEditPage" :reset-zoom="resetZoom" title=""></TopBarTrackingChain>
+    <TopBar title="" :goBackBtn="true">
+        <v-btn color="secondary" size="large" class="mx-2" @click="resetZoom">
+            <template v-slot:prepend>
+                <v-icon>mdi mdi-restore</v-icon>
+            </template>
+            Reset zoom
+        </v-btn>
+
+        <v-btn color="secondary" size="large" class="mx-2" @click="goToEditPage">
+            <template v-slot:prepend>
+                <v-icon>mdi mdi-pencil</v-icon>
+            </template>
+            Edit page
+        </v-btn>
+    </TopBar>
+
     <v-col v-if="materializedTrackerFrames">
         <!-- Navigation Buttons -->
         <v-row justify="center" align="center">
@@ -82,21 +97,21 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "vue";
-import { FrameRecordIdx, NodePosition, TrackinChainProps } from "../types/types"
 import { Network, Edge, Node, IdType } from 'vis-network';
 import '../styles/main.css';
 
 import { fetchMaterializedFrames } from "@/core/api";
-import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api_types";
-import { trackedYearsStore } from '../core/stores/trackedYears';
+import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api/api";
 import { getEdgeColor, getNodeColor } from '@/core/utils';
-import TopBarTrackingChain from '@/components/TopBars/TopBarTrackingChain.vue';
+import TopBar from '@/components/TopBars/TopBar.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
+import { useTrackedYearsStore } from '@/core/stores/trackedYears';
+import { FrameRecordIdx, NodePosition, TrackinChainProps } from '../types';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100
 
-const tyStore = trackedYearsStore()
+const trackedYearsStore = useTrackedYearsStore()
 
 const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
@@ -295,7 +310,7 @@ function setupNodes(mFrames: MaterializedTrackerFrame[]) {
         centerX += OFFSET_X
 
         const frame = mFrames[i]
-        const year = tyStore.getYearFromFrameIdx(frame.frame_idx)
+        const year = trackedYearsStore.getYearFromFrameIdx(frame.frame_idx)
         const hasMatchedYear = frame.matching_record_idx != null
         const records = frame.records
 
@@ -433,13 +448,13 @@ onMounted(() => {
                 console.log(data.frames)
                 materializedTrackerFrames.value = data.frames
             } else {
-            errorMessageStore.addErrorMessage("Person not found")
+                errorMessageStore.addErrorMessage("Person not found")
 
                 error.value = true
             }
         }
-        ).catch(err =>         errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
-)
+        ).catch(err => errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
+        )
 })
 
 </script>

@@ -26,7 +26,10 @@ declare module 'vue' {
     Test: typeof import('./src/components/CrashTest2.vue')['default']
     TopBar: typeof import('./src/components/TopBars/TopBar.vue')['default']
     TopBarEditPage: typeof import('./src/components/TopBars/TopBarEditPage.vue')['default']
+    TopBarHomePage: typeof import('./src/components/TopBars/TopBarHomePage.vue')['default']
+    TopBarMenu: typeof import('./src/components/TopBars/TopBarMenu.vue')['default']
     TopBarTrackingChain: typeof import('./src/components/TopBars/TopBarTrackingChain.vue')['default']
     TrackingChainTopBar: typeof import('./src/components/TopBars/TrackingChainTopBar.vue')['default']
+    Upload: typeof import('./src/components/Upload.vue')['default']
   }
 }

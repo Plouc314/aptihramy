@@ -8,10 +8,8 @@
 </template>
 
 <script lang="ts" setup>
-import { trackedFeaturesStore } from './core/stores/trackedFeatures';
-import { trackedYearsStore } from './core/stores/trackedYears';
+import TopBar from './components/TopBars/TopBarHomePage.vue';
 import { useErrorMessagesStore } from './core/stores/errorMessages';
-import { removeToken } from './core/auth';
 
 const errorMessageStore = useErrorMessagesStore()
 //removeToken()

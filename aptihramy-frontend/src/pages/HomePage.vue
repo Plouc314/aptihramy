@@ -1,6 +1,9 @@
 <template>
+    <TopBar title="Find a person" :goBackBtn="false"></TopBar>
     <v-col>
-        <v-card class="header-card">
+        <v-progress-circular v-if="!trackedFeatures || !trackedYears" indeterminate :size="80" :width="10"
+            class="loading-spinner"></v-progress-circular>
+        <v-card v-else class="header-card">
             <v-row v-for="filter in filters" :key="filter.id" class="filter">
                 <Filter :can-remove="filters.length != 1" :id="filter.id" :remaining-features="remainingFeatures"
                     :suggestions="getSuggestions(filter.feature)" @delete-filter="removeFilter"
@@ -15,51 +18,49 @@
         </v-card>
         <v-progress-circular v-if="querySent" indeterminate :size="80" :width="10"
             class="loading-spinner"></v-progress-circular>
-        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"></display-people>
 
+
+        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
+            class="display-people"></display-people>
     </v-col>
 </template>
 
 <script setup lang="ts">
 import DisplayPeople from '@/components/DisplayPeople.vue';
+import TopBar from '@/components/TopBars/TopBar.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import Filter from '@/components/Filter.vue';
-import { FilterState, TrackerIDMemory } from "../types/types"
-import { FilterRequest, } from '@/types/api_types';
+import { FilterRequest, } from '@/types/api/api';
 import '../styles/main.css';
 import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
-import { trackedFeaturesStore } from '../core/stores/trackedFeatures';
-import { filterStore } from '@/core/stores/filterStore';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
-import { trackedYearsStore } from '@/core/stores/trackedYears';
-import { useRouter } from 'vue-router';
+import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
+import { useTrackedYearsStore } from '@/core/stores/trackedYears';
+import { useFilterStore } from '@/core/stores/filterStore';
+import { FilterState, TrackerIDMemory } from '@/types';
 
 
 const errorMessageStore = useErrorMessagesStore()
-const tfStore = trackedFeaturesStore()
-tfStore.fetchTrackedFeatures()
-const tyStore = trackedYearsStore()
-tyStore.fetchTrackedYears()
+const trackedFeatureStore = useTrackedFeaturesStore()
+trackedFeatureStore.fetchAndStoreTrackedFeatures()
+const trackedYearsStore = useTrackedYearsStore()
+trackedYearsStore.fetchAndStoreTrackedYears()
 
-const trackedFeatures = computed(() => tfStore.getTrackedFeatures)
-const errorMessagestore = useErrorMessagesStore()
-const router = useRouter()
+const trackedFeatures = computed(() => trackedFeatureStore.getTrackedFeatures)
+const trackedYears = computed(() => trackedYearsStore.trackedYears)
 
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
-const fStore = filterStore()
-const filters = computed(() => {
-    console.log(fStore.getStoredFilters)
-    return fStore.getStoredFilters
-})
+const filterStore = useFilterStore()
+const filters = filterStore.storedFilters
 
 const remainingFeatures = computed<string[]>(() => {
     if (!trackedFeatures.value) {
         return [] as string[]
     }
 
-    const usedColumns: string[] = filters.value.map(value => value.feature).filter(v => v !== "")
+    const usedColumns: string[] = filters.map(value => value.feature).filter(v => v !== "")
     const ret: string[] = []
     for (let i = 0; i < trackedFeatures.value.pretty_features.length; i++) {
         const prettyFeature = trackedFeatures.value.pretty_features[i]
@@ -71,16 +72,16 @@ const remainingFeatures = computed<string[]>(() => {
 })
 
 function addFilter(): void {
-    fStore.createEmptyFilter()
+    filterStore.createEmptyFilter()
 }
 
 function removeFilter(filter: FilterState): void {
-    fStore.removeFilter(filter)
+    filterStore.removeFilter(filter)
     search()
 }
 
 function getSuggestions(column: string): string[] {
-    const index = tfStore.getTrackedFeatureIndex(column)
+    const index = trackedFeatureStore.getTrackedFeatureIndex(column)
     if (index < 0 || suggestionsFeatureValues.value.length == 0) {
         return []
     }
@@ -88,7 +89,7 @@ function getSuggestions(column: string): string[] {
 }
 
 function editFilter(filter: FilterState): void {
-    fStore.editFilter(filter)
+    filterStore.editFilter(filter)
     search()
 }
 
@@ -114,11 +115,12 @@ watch(filterResponse, (newFilterResponse) => {
 function search(): void {
 
     const featureSearchValue = new Map<string, string>();
-    if (filters.value && !filters.value.some(v => v.input && v.input.length > 2) || querySent.value) {
+    if (filters && !filters.some(v => v.input && v.input.length > 2) || querySent.value) {
         return
     }
 
-    for (const filter of filters.value) {
+    console.log("Send search")
+    for (const filter of filters) {
         if (trackedFeatures.value.pretty_features.includes(filter.feature)) {
             featureSearchValue.set(filter.feature, filter.input)
         }
@@ -132,9 +134,7 @@ function search(): void {
             for (const trackerID in response.data) {
                 trackerIDMem.set(trackerID, response.data[trackerID])
             }
-            console.log(trackerIDMem)
             filterResponse.value = trackerIDMem
-
         })
         .catch((err) => {
             errorMessageStore.handleError(err)
@@ -148,6 +148,10 @@ onMounted(() => search())
 
 
 <style scoped>
+.display-people {
+    height: 75vh;
+}
+
 .header-card {
     padding: 30px;
     background-color: "background";
@@ -162,22 +166,6 @@ onMounted(() => search())
     gap: 16px;
 }
 
-.filter-select {
-    flex: 1;
-}
-
-.filter-select .v-label {
-    color: "text-secondary";
-    font-weight: bold;
-}
-
-.filter-select .v-input__control {
-    min-height: 40px;
-}
-
-.filter-select .v-select__selection {
-    color: "text-primary";
-}
 
 .loading-spinner {
     position: fixed;
