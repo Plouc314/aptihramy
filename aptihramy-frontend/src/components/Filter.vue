@@ -34,7 +34,7 @@ watch(selectedFeature, () => {
 });
 
 watch(input, (input) => {
-    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: input }
+    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: input.toLowerCase() }
     emit('edit-filter', a);
 });
 

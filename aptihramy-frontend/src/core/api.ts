@@ -2,6 +2,7 @@ import { DiskDataStatus, DiskError, UpdateBatch } from "@/types/api/update";
 import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api/api"
 import { getToken } from "./auth";
 import { useErrorMessagesStore } from "./stores/errorMessages";
+import { UserInformation } from "@/types";
 
 
 const API_BASE_URL = import.meta.env.VITE_FASTAPI_URL || "";
@@ -73,6 +74,36 @@ export async function checkToken(): Promise<boolean> {
     }
 }
 
+export async function addUser(email: string, password: string, is_superuser: boolean): Promise<UserInformation> {
+    const body = JSON.stringify({
+        email,
+        password,
+        is_superuser,
+    });
+
+    return fetchData<UserInformation>("/auth/jwt/register", {
+        method: "POST",
+        body,
+    });
+}
+
+
+export async function fetchCurrentUserInformation(): Promise<UserInformation> {
+    return fetchData<UserInformation>("/users/me", { method: "GET" })
+}
+
+export async function fetchAllUserInformation(): Promise<UserInformation[]> {
+    return fetchData<UserInformation[]>("/api/users", { method: "GET" })
+}
+
+export async function fetchUnacceptedBatches(): Promise<number[]> {
+    return fetchData<number[]>("/api/update/unaccepted-batches", { method: "GET" })
+}
+
+export async function fetchUpdateBatch(id: number): Promise<UpdateBatch> {
+    return fetchData<UpdateBatch>("/api/update/batch/" + id, { method: "GET" })
+
+}
 
 export async function login(username: string, password: string): Promise<string> {
     let url = API_BASE_URL + "/auth/jwt/login";

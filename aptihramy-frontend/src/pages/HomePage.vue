@@ -28,11 +28,11 @@
 <script setup lang="ts">
 import DisplayPeople from '@/components/DisplayPeople.vue';
 import TopBar from '@/components/TopBars/TopBar.vue';
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, handleError } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterRequest, } from '@/types/api/api';
 import '../styles/main.css';
-import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
+import { fetchAllUserInformation, fetchUpdateBatch, fetchCurrentUserInformation, fetchFilteredTrackers, fetchUnacceptedBatches } from '@/core/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
@@ -49,6 +49,7 @@ trackedYearsStore.fetchAndStoreTrackedYears()
 const trackedFeatures = computed(() => trackedFeatureStore.getTrackedFeatures)
 const trackedYears = computed(() => trackedYearsStore.trackedYears)
 
+// feature -> list of values
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
@@ -95,11 +96,14 @@ function editFilter(filter: FilterState): void {
 
 // filterResponse is updated whenever a request is made
 // When getting a filter response create a set of all values for each feature for the suggestions
+
 watch(filterResponse, (newFilterResponse) => {
+    console.log(newFilterResponse)
     const tempsuggestionsFeatureValues = Array.from(
         { length: trackedFeatures.value.pretty_features.length },
         () => new Set<string>()
     );
+
     newFilterResponse.forEach((trackerMemory, _) => {
         trackerMemory.forEach((suggestionsFeatureValues, index) => {
             // Should always be the case as the number of features should always be the same
@@ -149,7 +153,7 @@ onMounted(() => search())
 
 <style scoped>
 .display-people {
-    height: 75vh;
+    max-height: 75vh;
 }
 
 .header-card {
