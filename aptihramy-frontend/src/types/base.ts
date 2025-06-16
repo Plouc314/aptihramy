@@ -5,7 +5,7 @@ export type FrameRecordIdx = { frameIdx: number; recordIdx: number };
 export type TrackerIDMemory = Map<trackerID, string[][]>;
 export type ColumnRows = Map<string, string[]>;
 export type RecordType = { [key: string]: string | number };
-
+export type RawElement = string | string[] | undefined
 export interface UserInformation {
     id: string;
     email: string;

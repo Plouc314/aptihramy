@@ -1,6 +1,13 @@
 <template>
     <v-card class="upload-card">
-        <v-card-title> {{ props.title }}</v-card-title>
+        <v-card-title class="d-flex justify-space-between align-center">
+            {{ props.title }}
+            <v-btn icon="mdi-close" variant="text" @click="() => {
+                file = null
+                $emit('close')
+            }"></v-btn>
+        </v-card-title>
+
         <v-card-text>
             <v-row class="align-center">
                 <v-col cols="9">

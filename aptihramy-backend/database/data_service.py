@@ -225,6 +225,19 @@ class DataService:
         pretty = [COLUMN_RAW_TO_PRETTY[col] for col in raw]
         return (raw, pretty)
 
+    def get_multistrings_features(self) -> list[str]:
+        """
+        Retrieves the list of tracked features which are multi-strings
+
+        Returns:
+            list[str]: a list of multi strings features
+        """
+        return [
+            feature.name
+            for feature in self._record_schema.fields
+            if feature.dtype == bb.ElementType.MultiStrings
+        ]
+
     def _get_values_from_df(
         self, dfs: list[pl.DataFrame], frame_idx: int, record_idx: int
     ) -> list[Element]:
@@ -254,7 +267,6 @@ class DataService:
 
         raw_tracked_features, _ = self.get_tracked_features()
         row = frame.select(raw_tracked_features).row(record_idx)
-
         return list(row)
 
     def get_raw_values_for_frame_idx_record_idx(

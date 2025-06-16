@@ -108,6 +108,7 @@ class UpdateSystem:
                 for entry in batch.entries
             ]
             return UpdateBatch(
+                id=batch_id,
                 author=batch.author,
                 entries=entries,
                 accepted=batch.accepted,

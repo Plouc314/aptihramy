@@ -12,7 +12,7 @@ export const useErrorMessagesStore = defineStore('errorMessageStore', () => {
         if (error.message === UNAUTHORIZED) {
             router.push({ name: 'LoginPage' })
         } else {
-            addErrorMessage(`An error occurred: ${error}`)
+            addErrorMessage(error)
         }
         console.log(error)
     }

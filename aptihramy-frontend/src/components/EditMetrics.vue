@@ -25,7 +25,7 @@
         </v-col>
     </v-row>
 
-    <v-row v-for="[frameIdx, values] in frameIdxValues" :key="frameIdx" class="table-data-row">
+    <v-row v-for="(frameIdx, idx) in frameIdxValues.keys()" :key="idx" class="table-data-row">
         <v-col>{{ trackedYearsStore.getYearFromFrameIdx(frameIdx) }}</v-col>
         <v-col>
             <v-chip>{{ originalFrameIdxValue[frameIdx] }}</v-chip>
@@ -51,13 +51,14 @@
         </v-col>
         <v-col>
             <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues" label="Select value" clearable
-                dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }" variant="outlined"></v-combobox>
+                dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
+                variant="outlined"></v-combobox>
         </v-col>
     </v-row>
 
     <v-row class="mt-4" justify="space-between">
         <v-col cols="3">
-            <v-btn class="error-btn" variant="tonal" @click="resetValues" block>Reset to default values
+            <v-btn class="error-btn" variant="tonal" @click="resetToDefault" block>Reset to default values
                 (normalized)</v-btn>
         </v-col>
         <v-col cols="2">
@@ -67,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { getColorForMatch } from "@/core/utils";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import "../styles/main.css";
@@ -80,24 +81,33 @@ const trackedYearsStore = useTrackedYearsStore()
 
 const props = defineProps<EditMetricsProps>();
 const emit = defineEmits<EditMetricsEmit>();
+defineExpose({ resetToDefault });
 
 const frameIdxValues = ref<Map<number, FeatureMatchForYear>>(new Map());
-// frame idx -> value
+// Currently selected values for each frame index. At the beginning the selected 
+// values are the normalized values
 const selectedFrameIdxValue = reactive<Record<number, string | number>>({});
+// Original (normalized) values for each frame index
 const originalFrameIdxValue = reactive<Record<number, string | number>>({});
 const animatedFrameIdxs = ref(new Set<number>());
+// All available values to choose from
 const allValues = ref<(string | number)[]>([]);
+// Select which value to replace
 const valueToReplace = ref<string | number | null>(null);
+// Select the new value to replace the value to be replaced
 const replacementValue = ref<string | number | null>(null);
 
+// Computed list for combobox including "All" option
 const allValuesToReplace = computed(() => ["All", ...allValues.value]);
 
+// Get all candidate values (raw + normalized), deduplicated
 function candidateValues(frameIdx: number) {
     const candidates = frameIdxValues.value.get(frameIdx)?.candidates || [];
     const a = candidates.flatMap(v => [v.rawValue, v.normalizedValue])
     return Array.from(new Set(a)).filter(v => v !== "")
 };
 
+// Get the normalized value for a frame index
 function normalizedValue(frameIdx: number) {
     const matchCandidates = frameIdxValues.value.get(frameIdx)
     if (matchCandidates) {
@@ -112,6 +122,7 @@ function normalizedValue(frameIdx: number) {
     return "No information"
 };
 
+// Replace selected value(s)
 function replaceValue() {
     if (!valueToReplace.value || !replacementValue.value) return;
 
@@ -126,30 +137,40 @@ function replaceValue() {
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
 };
 
-function resetValues() {
+// Reset selections to the original normalized values
+function resetToDefault() {
     Object.keys(selectedFrameIdxValue).forEach(frameIdx => {
         selectedFrameIdxValue[frameIdx] = originalFrameIdxValue[frameIdx];
     });
 };
 
+// Save current (updated) values and emit to parent
 function save() {
     const updated = Object.entries(selectedFrameIdxValue).map(([frameIdx, value]) => {
         const recordIdx = frameIdxValues.value.get(Number(frameIdx)).matchingRecordIndex
         return { frameIdx: Number(frameIdx), recordIdx: recordIdx, value: value }
     });
-    errorMessageStore.addInfoMessage(`${props.prettyFeature} saved`);
     emit("update-values", props.prettyFeature, updated);
 };
+
+// Watcher: auto-save on change
+watch(selectedFrameIdxValue, _ => {
+    save()
+})
 
 onMounted(() => {
     frameIdxValues.value = props.frameIdxValues ?? new Map();
     const featureValues = new Set<string | number>();
+
+    // Initialize value maps
     frameIdxValues.value.forEach((values, year) => {
         values.candidates.forEach(v => {
             featureValues.add(v.rawValue).add(v.normalizedValue);
-            // Take value of the matching record
+
+            // Init selected and original values using matching record index
             if (!selectedFrameIdxValue[year] && v.recordIdx == values.matchingRecordIndex) {
                 const updated = props.updatedValues?.get(year)
+                // If updated value exist for this year use the updated value
                 selectedFrameIdxValue[year] = updated ? updated : v.normalizedValue;
                 originalFrameIdxValue[year] = v.normalizedValue;
             }
@@ -160,10 +181,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table-header-row {
-    font-weight: 600;
-    color: var(--primary);
-}
+
 
 .chip {
     font-size: 1rem;

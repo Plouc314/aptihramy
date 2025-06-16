@@ -6,8 +6,20 @@ import EditPage from '@/pages/EditPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import { checkDiskDataStatus, checkToken, fetchCurrentUserInformation } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages'
-import UploadPage from '@/pages/UploadPage.vue'
+import UploadDownloadPage from '@/pages/UploadDownloadPage.vue'
 import UsersPage from '@/pages/UsersPage.vue'
+import UpdatesPage from '@/pages/UpdatesPage.vue'
+
+async function isSuperUser() {
+  const errorMessageStore = useErrorMessagesStore();
+  try {
+    const userInfo = await fetchCurrentUserInformation()
+    return userInfo.is_superuser
+
+  } catch (error) {
+    errorMessageStore.handleError(error)
+  }
+}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -17,21 +29,21 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    name: 'UploadPage',
-    component: UploadPage,
+    name: 'UploadDownloadPage',
+    component: UploadDownloadPage,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
       if (from.name === "LoginPage" || from.fullPath === "UploadPage") {
         const databaseStatus = await checkDiskDataStatus();
         if (databaseStatus.ready) {
-          return "/home-page"
+          return "/home"
         }
       }
       return true
     },
   },
   {
-    path: '/home-page',
+    path: '/home',
     name: 'HomePage',
     component: HomePage,
     meta: { requiresAuth: true }
@@ -45,27 +57,30 @@ const routes: RouteRecordRaw[] = [
 
   },
   {
-    path: '/edit-page/:trackerID',
+    path: '/edit/:trackerID',
     name: 'EditPage',
     component: EditPage,
     props: true,
     meta: { requiresAuth: true }
   },
   {
-    path: '/users-page',
+    path: '/users',
     name: 'UsersPage',
     component: UsersPage,
     props: true,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      const errorMessageStore = useErrorMessagesStore();
-      try {
-        const userInfo = await fetchCurrentUserInformation()
-        return userInfo.is_superuser
-
-      } catch (error) {
-        errorMessageStore.handleError(error)
-      }
+      return isSuperUser()
+    },
+  },
+  {
+    path: '/updates',
+    name: 'UpdatesPage',
+    component: UpdatesPage,
+    props: true,
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isSuperUser()
     },
   }
 ]

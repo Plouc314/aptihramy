@@ -20,7 +20,7 @@
             class="loading-spinner"></v-progress-circular>
 
 
-        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
+        <display-people v-else-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
             class="display-people"></display-people>
     </v-col>
 </template>
@@ -32,7 +32,7 @@ import { ref, computed, watch, onMounted, handleError } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterRequest, } from '@/types/api/api';
 import '../styles/main.css';
-import { fetchAllUserInformation, fetchUpdateBatch, fetchCurrentUserInformation, fetchFilteredTrackers, fetchUnacceptedBatches } from '@/core/api';
+import { fetchFilteredTrackers } from '@/core/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
@@ -42,9 +42,7 @@ import { FilterState, TrackerIDMemory } from '@/types';
 
 const errorMessageStore = useErrorMessagesStore()
 const trackedFeatureStore = useTrackedFeaturesStore()
-trackedFeatureStore.fetchAndStoreTrackedFeatures()
 const trackedYearsStore = useTrackedYearsStore()
-trackedYearsStore.fetchAndStoreTrackedYears()
 
 const trackedFeatures = computed(() => trackedFeatureStore.getTrackedFeatures)
 const trackedYears = computed(() => trackedYearsStore.trackedYears)
@@ -55,6 +53,7 @@ const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
 const filterStore = useFilterStore()
 const filters = filterStore.storedFilters
+const previousFilters = ref<FilterState[]>([])
 
 const remainingFeatures = computed<string[]>(() => {
     if (!trackedFeatures.value) {
@@ -98,7 +97,6 @@ function editFilter(filter: FilterState): void {
 // When getting a filter response create a set of all values for each feature for the suggestions
 
 watch(filterResponse, (newFilterResponse) => {
-    console.log(newFilterResponse)
     const tempsuggestionsFeatureValues = Array.from(
         { length: trackedFeatures.value.pretty_features.length },
         () => new Set<string>()
@@ -116,38 +114,42 @@ watch(filterResponse, (newFilterResponse) => {
 })
 
 
-function search(): void {
+async function search(): Promise<void> {
 
     const featureSearchValue = new Map<string, string>();
     if (filters && !filters.some(v => v.input && v.input.length > 2) || querySent.value) {
         return
     }
 
-    console.log("Send search")
     for (const filter of filters) {
         if (trackedFeatures.value.pretty_features.includes(filter.feature)) {
             featureSearchValue.set(filter.feature, filter.input)
         }
     }
 
-    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
+    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue), query_limit: 1000 }
     querySent.value = true
-    fetchFilteredTrackers(request)
-        .then((response) => {
-            const trackerIDMem: TrackerIDMemory = new Map()
-            for (const trackerID in response.data) {
-                trackerIDMem.set(trackerID, response.data[trackerID])
-            }
-            filterResponse.value = trackerIDMem
-        })
-        .catch((err) => {
-            errorMessageStore.handleError(err)
-        }).finally(() => {
-            querySent.value = false
-        })
+    const response = await fetchFilteredTrackers(request)
+
+    const trackerIDMem: TrackerIDMemory = new Map()
+    for (const trackerID in response.data) {
+        trackerIDMem.set(trackerID, response.data[trackerID])
+    }
+    filterResponse.value = trackerIDMem
+
+    querySent.value = false
 }
 
-onMounted(() => search())
+onMounted(async () => {
+    try {
+        await trackedYearsStore.fetchAndStoreTrackedYears()
+        await trackedFeatureStore.fetchAndStoreTrackedFeatures()
+        await search()
+    } catch (error) {
+        errorMessageStore.handleError(error)
+    }
+
+})
 </script>
 
 

@@ -1,8 +1,5 @@
-export type FeatureValues = Map<string, (string | number | null)[]>;
+import { RawElement } from "../base";
 
-export interface RecordValuesTrackedFeatures {
-    records: FeatureValues;
-}
 
 export interface RecordDiagnostics {
     record_score: number;
@@ -26,4 +23,29 @@ export interface MaterializedTrackerFrame {
 export interface RecordDiagnostics {
     record_score: number;
     distances: (number | null)[];
+}
+
+export interface FrameRecordPair {
+    frame_idx: number;
+    record_idx: number;
+}
+
+export interface RecordRequest {
+    pairs: FrameRecordPair[]
+}
+
+export interface RecordModel {
+    raw_values: RawElement[];
+    normalized_values: RawElement[];
+}
+
+export interface RecordResult {
+    frame_idx: number;
+    record_idx: number;
+    values: RecordModel | undefined;
+    error: string | undefined
+}
+
+export interface RecordsResponse {
+    results: RecordResult[];
 }

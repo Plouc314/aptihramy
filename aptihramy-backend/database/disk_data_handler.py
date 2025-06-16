@@ -251,7 +251,9 @@ class DiskDataHandler:
                 modified_df_indexes.add(entry.frame_idx)
                 df = self._normalized_dataframes[entry.frame_idx]
                 field = self.record_schema.fields[entry.field_idx]
-                df[entry.record_idx, field.name] = entry.value
+                df[field.name] = df[field.name].set_at_idx(
+                    entry.record_idx, entry.value
+                )
 
             # save the modified dataframes
             for frame_idx in modified_df_indexes:

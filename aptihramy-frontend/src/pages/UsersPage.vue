@@ -23,11 +23,11 @@
                     </v-col>
                     <v-col>
                         <v-chip :color="user.is_superuser ? 'green' : 'grey'" variant="flat" text-color="white" small>
-                            {{ user.is_superuser ? 'Superuser' : 'Member' }}
+                            {{ user.is_superuser ? 'Admin' : 'Member' }}
                         </v-chip>
                     </v-col>
                     <v-col class="text-right">
-                        <v-btn icon="mdi-delete" variant="text" color="error" @click="deleteUser(user.id)" />
+                        <v-btn icon="mdi-delete" variant="text" @click="deleteUser(user.id)" />
                     </v-col>
                 </v-row>
                 <v-divider />
@@ -64,7 +64,6 @@
                     </v-btn>
                 </v-form>
             </v-card>
-
         </v-dialog>
     </div>
 

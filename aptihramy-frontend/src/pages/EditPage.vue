@@ -9,23 +9,44 @@
             </v-btn>
         </TopBar>
 
-        <v-progress-circular v-if="!featureYearValues && !error" indeterminate :size="80" :width="10"
-            class="loading-spinner" />
-        <v-card v-else-if="error" class="error-card">
+        <v-card v-if="error" class="error-card">
             <v-card-text class="error-content">
                 <v-icon class="error-icon">mdi-alert-circle</v-icon>
                 <span>Person not found</span>
             </v-card-text>
         </v-card>
+
+        <v-progress-circular v-else-if="featureYearValues.size === 0" indeterminate :size="80" :width="10"
+            class="loading-spinner" />
         <v-expansion-panels v-else v-model="expandedFeatureIndexes" multiple>
             <v-expansion-panel v-for="feature in allPrettyFeatures" :key="feature">
-                <v-expansion-panel-title>{{ feature }}</v-expansion-panel-title>
+                <v-expansion-panel-title>
+                    <v-row align="center">
+                        <v-col cols="4" class="text-subtitle-1 font-weight-medium">
+                            {{ feature }}
+                        </v-col>
+
+                        <v-spacer></v-spacer>
+
+                        <v-col cols="auto">
+                            <v-btn color="error" variant="tonal" class="me-2" @click.stop="triggerReset(feature)">
+                                Reset to default values (normalized)
+                            </v-btn>
+                            <v-btn color="success" variant="tonal" @click.stop="triggerSave(feature)">
+                                Save
+                            </v-btn>
+                        </v-col>
+                    </v-row>
+                </v-expansion-panel-title>
+
                 <v-expansion-panel-text>
-                    <EditMetrics :pretty-feature="feature" :frame-idx-values="featureYearValues.get(feature)"
+                    <EditMetrics :ref="(el) => setEditMetricsRef(feature, el)" :pretty-feature="feature"
+                        :frame-idx-values="featureYearValues.get(feature)"
                         :updated-values="extractUpdatedValues(feature)" @update-values="updateValues" />
                 </v-expansion-panel-text>
             </v-expansion-panel>
         </v-expansion-panels>
+
     </v-col>
 </template>
 
@@ -33,18 +54,36 @@
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import TopBar from "@/components/TopBars/TopBar.vue";
-import { fetchMaterializedFrames, postUpdateBatch } from "@/core/api";
+import { fetchCurrentUserInformation, fetchMaterializedFrames, postUpdateBatch } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api/api";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import "../styles/main.css";
 import { UpdateBatch, UpdateEntry } from "@/types/api/update";
 import { EditPageProps, FeatureMatchForYear, FeatureYearMatchMap, FrameIdxRecordIdxValue } from "../types";
+import { useTrackedYearsStore } from "@/core/stores/trackedYears";
 
 const props = defineProps<EditPageProps>();
 const errorMessageStore = useErrorMessagesStore();
 const trackedFeaturesStore = useTrackedFeaturesStore();
+const trackedYearsStore = useTrackedYearsStore()
 
+
+const editMetricsRefs = ref<Record<string, any>>({});
+
+function setEditMetricsRef(feature: string, el: any) {
+    if (el) {
+        editMetricsRefs.value[feature] = el;
+    }
+}
+
+function triggerReset(feature: string) {
+    editMetricsRefs.value[feature]?.resetToDefault?.();
+}
+
+function triggerSave(feature: string) {
+    editMetricsRefs.value[feature]?.save?.();
+}
 
 const error = ref(false);
 const frames = ref<MaterializedTrackerFrame[] | null>(null);
@@ -52,6 +91,7 @@ const frames = ref<MaterializedTrackerFrame[] | null>(null);
 const expandedFeatureIndexes = ref<number[]>([]);
 
 const allPrettyFeatures = computed(() => trackedFeaturesStore.getTrackedFeatures?.pretty_features ?? []);
+// feature -> frame idx -> [record idx, updated value]
 const updatedValues = ref(new Map<string, Map<number, [number, string | number]>>());
 
 function updateValues(prettyFeature: string, frameRecordValue: FrameIdxRecordIdxValue[]) {
@@ -87,8 +127,10 @@ async function saveSelectedValues() {
             });
         });
 
+        const userInfo = await fetchCurrentUserInformation()
         const batch: UpdateBatch = {
-            author: "john.doe@example.com",
+            id: undefined,
+            author: userInfo.email,
             accepted: false,
             timestamp: new Date().toISOString(),
             entries,
@@ -102,8 +144,8 @@ async function saveSelectedValues() {
     }
 }
 
-const featureYearValues = computed(() => {
-    if (!frames.value || !allPrettyFeatures.value) return null;
+const featureYearValues = computed<FeatureYearMatchMap>(() => {
+    if (!frames.value || !allPrettyFeatures.value) return new Map();
 
     // Feature -> frame index -> raw and normalized of the matching record and the candidates records
     const result: FeatureYearMatchMap = new Map()
@@ -122,18 +164,17 @@ const featureYearValues = computed(() => {
         });
         result.set(feature, frameIdxValues);
     })
+
     return result;
 });
 
 onMounted(async () => {
     try {
-        const { frames: fetchedFrames } = await fetchMaterializedFrames(props.trackerID);
-        frames.value = fetchedFrames ?? null;
-
-        if (!fetchedFrames) {
-            error.value = true;
-            errorMessageStore.addErrorMessage("Person not found");
-        }
+        await trackedFeaturesStore.fetchAndStoreTrackedFeatures()
+        await trackedYearsStore.fetchAndStoreTrackedYears()
+        const fetchedFrames = await fetchMaterializedFrames(props.trackerID);
+        console.log(fetchedFrames)
+        frames.value = fetchedFrames.frames;
     } catch (err) {
         errorMessageStore.handleError(err);
         error.value = true;

@@ -1,5 +1,5 @@
 import { DiskDataStatus, DiskError, UpdateBatch } from "@/types/api/update";
-import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, RecordValuesTrackedFeatures, TrackedYears } from "../types/api/api"
+import { TrackedFeatures, Root, FilterRequest, FilterResponse, TrackerInformation, TrackedYears, FrameRecordPair, RecordResult, RecordRequest, RecordsResponse, MultiStringsFeatures } from "../types/api/api"
 import { getToken } from "./auth";
 import { useErrorMessagesStore } from "./stores/errorMessages";
 import { UserInformation } from "@/types";
@@ -13,7 +13,8 @@ async function fetchData<T>(
     endpoint: string,
     options: RequestInit,
     params?: Record<string, string | number>,
-    contentType: string | null = "application/json"
+    contentType: string | null = "application/json",
+    responseType: "json" | "blob" = "json"
 ): Promise<T> {
     let url = API_BASE_URL + endpoint;
     const errorMessageStore = useErrorMessagesStore();
@@ -39,11 +40,23 @@ async function fetchData<T>(
     if (response.status === 401) {
         localStorage.removeItem("token");
         errorMessageStore.addErrorMessage(`Token expired, redirecting to login page`);
-        throw new Error(UNAUTHORIZED)
+        throw new Error("UNAUTHORIZED");
+    }
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+
+
+    if (responseType === "blob") {
+        return (await response.blob()) as T;
     }
 
     return await response.json();
 }
+
 
 export async function postUpdateBatch(batch: UpdateBatch): Promise<void> {
     return fetchData<void>("/api/update/batch", { method: "POST", body: JSON.stringify(batch) });
@@ -100,11 +113,17 @@ export async function fetchUnacceptedBatches(): Promise<number[]> {
     return fetchData<number[]>("/api/update/unaccepted-batches", { method: "GET" })
 }
 
-export async function fetchUpdateBatch(id: number): Promise<UpdateBatch> {
+export async function fetchUpdateBatchById(id: number): Promise<UpdateBatch> {
     return fetchData<UpdateBatch>("/api/update/batch/" + id, { method: "GET" })
-
 }
 
+export async function acceptBatch(batch_id: number): Promise<void> {
+    return fetchData<void>(`/api/update/batch/${batch_id}/accept`, { method: "POST" })
+}
+
+export async function rejectBatch(batch_id: number): Promise<void> {
+    return fetchData<void>(`/api/update/batch/${batch_id}`, { method: "DELETE" })
+}
 export async function login(username: string, password: string): Promise<string> {
     let url = API_BASE_URL + "/auth/jwt/login";
 
@@ -123,6 +142,18 @@ export async function login(username: string, password: string): Promise<string>
 
     const data = await response.json();
     return data.access_token;
+}
+
+
+
+
+export async function downloadGraphFromServer(): Promise<Blob> {
+    return fetchData<Blob>("/api/download/graph", { method: "GET" }, undefined, null, "blob");
+}
+
+
+export async function downloadDataframesFromServer(normalized: boolean): Promise<Blob> {
+    return fetchData<Blob>("/api/download/dataframes", { method: "GET" }, { normalized: normalized ? "true" : "false" }, null, "blob");
 }
 
 export async function uploadDataframesToServer(file: File, normalized: boolean): Promise<void | DiskError> {
@@ -150,6 +181,11 @@ export async function fetchFilteredTrackers(featureSearchValue: FilterRequest): 
     return fetchData<FilterResponse>("/api/filter", { method: "POST", body: JSON.stringify(featureSearchValue) });
 }
 
+export async function fetchMultiStringsFeatures(): Promise<MultiStringsFeatures> {
+    return fetchData<MultiStringsFeatures>("/api/features/multi-strings", { method: "GET" });
+
+}
+
 export async function fetchTrackedFeatures(): Promise<TrackedFeatures> {
     return fetchData<TrackedFeatures>("/api/features", { method: "GET" });
 }
@@ -158,8 +194,15 @@ export async function fetchMaterializedFrames(tracker_id: string): Promise<Track
     return fetchData<TrackerInformation>("/api/materialized_frames", { method: "GET" }, { "tracker_id": tracker_id });
 }
 
-export async function fetchPersonValues(frame_idx: number, record_idx: number): Promise<RecordValuesTrackedFeatures> {
-    return fetchData<RecordValuesTrackedFeatures>("/api/record", { method: "GET" }, { "frame_idx": frame_idx.toString(), "record_idx": record_idx.toString() });
+export async function fetchPersonValues(frame_idx: number, record_idx: number): Promise<RecordResult> {
+    return fetchData<RecordResult>("/api/record", { method: "GET" }, { "frame_idx": frame_idx.toString(), "record_idx": record_idx.toString() });
+}
+
+export async function fetchMultiplePersonValues(frame_record_idx: FrameRecordPair[]): Promise<RecordsResponse> {
+    const r: RecordRequest = {
+        pairs: frame_record_idx
+    }
+    return fetchData<RecordsResponse>("/api/records", { method: "POST", body: JSON.stringify(r) });
 }
 
 export async function fetchTrackedYears(): Promise<TrackedYears> {

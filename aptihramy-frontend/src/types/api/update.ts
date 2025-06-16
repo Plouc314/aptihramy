@@ -6,6 +6,7 @@ export interface UpdateEntry {
 }
 
 export interface UpdateBatch {
+    id: number | undefined;
     author: string;
     entries: UpdateEntry[];
     accepted: boolean;

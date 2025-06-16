@@ -107,11 +107,13 @@ import TopBar from '@/components/TopBars/TopBar.vue';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
 import { FrameRecordIdx, NodePosition, TrackinChainProps } from '../types';
+import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 
 const OFFSET_X = 150
 const OFFSET_Y = 100
 
 const trackedYearsStore = useTrackedYearsStore()
+const trackedFeaturesStore = useTrackedFeaturesStore()
 
 const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
@@ -119,7 +121,7 @@ const materializedTrackerFrames = ref<MaterializedTrackerFrame[] | null>(null)
 
 const errorMessageStore = useErrorMessagesStore()
 
-const route = useRoute();
+
 const router = useRouter();
 
 const networkStyle = computed(() => {
@@ -274,7 +276,6 @@ function setupEdges(mFrames: MaterializedTrackerFrame[]) {
                 continue
             }
 
-            // console.log(mFrames[i].matching_record_idx)
             newEdges.push(buildEdge(encodeId(i, 0), encodeId(i + 1, r), getEdgeColor(recordDiagnostic.record_score), `${Math.round(recordDiagnostic.record_score * 100) / 100}`, r != 0 || !hasMatchedYear))
         }
 
@@ -404,7 +405,6 @@ function changeNode(offsetX: number, offsetY: number) {
     } else {
         const decoded = decodeId(selectedNodeID.value)
         const records = materializedTrackerFrames.value[decoded.x].records
-        console.log(records)
         const x = (decoded.x + offsetX + materializedTrackerFrames.value.length) % materializedTrackerFrames.value.length
         const y = (decoded.y + offsetY + records.length) % records.length
         selectedNodeID.value = encodeId(x, y)
@@ -439,22 +439,22 @@ function resetZoom() {
 
 };
 
-onMounted(() => {
-    const param = props.trackerID
-
-    fetchMaterializedFrames(param)
-        .then(data => {
-            if (data.frames) {
-                console.log(data.frames)
-                materializedTrackerFrames.value = data.frames
-            } else {
-                errorMessageStore.addErrorMessage("Person not found")
-
-                error.value = true
-            }
+onMounted(async () => {
+    try {
+        await trackedYearsStore.fetchAndStoreTrackedYears()
+        await trackedFeaturesStore.fetchAndStoreTrackedFeatures()
+        const f = await fetchMaterializedFrames(props.trackerID)
+        console.log(f.frames)
+        if (f.frames) {
+            materializedTrackerFrames.value = f.frames
+        } else {
+            errorMessageStore.addErrorMessage("Person not found")
+            error.value = true
         }
-        ).catch(err => errorMessageStore.addErrorMessage(`Error finding the person: ${err}`)
-        )
+    } catch (error) {
+        errorMessageStore.handleError(error)
+    }
+
 })
 
 </script>
