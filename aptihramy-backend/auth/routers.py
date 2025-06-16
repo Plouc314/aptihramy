@@ -2,9 +2,11 @@ import uuid
 from fastapi import Depends, FastAPI
 from fastapi_users import BaseUserManager
 
+from sqlalchemy import select
+
 from .schemas import UserCreate, UserRead, UserUpdate
 from .users import auth_backend, fastapi_users, get_user_manager, current_super_user
-from .db import User
+from .db import User, get_user_db, SQLAlchemyUserDatabase
 
 
 def setup_auth_routes(app: FastAPI) -> None:
@@ -38,3 +40,14 @@ def setup_auth_routes(app: FastAPI) -> None:
         """
         created_user = await user_manager.create(user)
         return created_user
+
+    @app.get("/auth/users", tags=["users"])
+    async def get_users(
+        active_user: User = Depends(current_super_user),
+        user_db: SQLAlchemyUserDatabase[User, uuid.UUID] = Depends(get_user_db),
+    ) -> list[UserRead]:
+        """
+        Returns all the users.
+        """
+        r = await user_db.session.execute(select(user_db.user_table))
+        return r.scalars()
