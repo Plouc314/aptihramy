@@ -35,8 +35,10 @@ export interface RecordRequest {
 }
 
 export interface RecordModel {
-    raw_values: RawElement[];
-    normalized_values: RawElement[];
+    // Contains the raw value for each feature
+    raw_values: (string | null)[];
+    // Contains the normalized value for each feature
+    normalized_values: (string | null)[]
 }
 
 export interface RecordResult {

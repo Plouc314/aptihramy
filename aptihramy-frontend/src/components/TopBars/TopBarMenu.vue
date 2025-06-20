@@ -16,25 +16,14 @@
 
         </v-list>
     </v-menu>
-
-    <v-dialog v-model="dialog" max-width="400">
-        <v-card>
-            <v-card-title class="text-h6">
-                oui
-            </v-card-title>
-
-         
-        </v-card>
-    </v-dialog>
 </template>
 <script setup lang="ts">
-import { fetchCurrentUserInformation } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import '../../styles/main.css';
+import { fetchCurrentUserInformation } from '@/core/api/users';
 
-const dialog = ref(false)
 const router = useRouter()
 const errorMessageStore = useErrorMessagesStore()
 const is_superuser = ref(false)

@@ -114,15 +114,10 @@
 import { ref, onMounted, Ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
-import {
-    checkDiskDataStatus,
-    downloadDataframesFromServer,
-    downloadGraphFromServer,
-    uploadBeaverFileToServer,
-    uploadDataframesToServer,
-} from '@/core/api';
+
 
 import Upload from '@/components/Upload.vue';
+import { checkDiskDataStatus, downloadDataframesFromServer, downloadGraphFromServer, uploadBeaverFileToServer, uploadDataframesToServer } from '@/core/api/disk';
 
 
 const router = useRouter();
@@ -174,11 +169,10 @@ async function downloadDataframes(isNormalized: boolean) {
         downloadRawDataframesSent.value = !isNormalized
 
         const blob = await downloadDataframesFromServer(isNormalized);
-        console.log(blob)
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "dataframes.zip";
+        a.download = isNormalized ? "normalized_dataframes.zip" : "dataframes.zip";
         document.body.appendChild(a);
         a.click();
         a.remove();

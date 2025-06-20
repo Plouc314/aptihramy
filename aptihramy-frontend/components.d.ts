@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    Chip: typeof import('./src/components/Chip.vue')['default']
     CompareFrame: typeof import('./src/components/CompareFrame.vue')['default']
     copy: typeof import('./src/components/TopBars/TopBarTrackingChain.vue')['default']
     CrashTest: typeof import('./src/components/CrashTest.vue')['default']

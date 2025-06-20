@@ -316,8 +316,8 @@ def get_materialized_frames(
     # (frame idx, record idx) -> raw values [value_of_feature1, value_of_feature2]
     raw_values: dict[tuple[int, int], list[Element]] = {}
     # (frame idx , record idx) -> raw values [value_of_feature1, value_of_feature2]
-
     normalized_values: dict[tuple[int, int], list[Element]] = {}
+    
     for frame_idx, record_idxs in frame_idx_rec_idxs.items():
         for record_idx in record_idxs:
             raw_values[(frame_idx, record_idx)] = (
@@ -330,6 +330,7 @@ def get_materialized_frames(
                     frame_idx, record_idx
                 )
             )
+
     return MaterializedTrackingChainModel.from_materialized_tracking_chain(
         materialized_chain, raw_values, normalized_values
     )

@@ -3,9 +3,19 @@
         <!-- Table header -->
         <v-col>
             <v-row class="table-header">
-                <v-col cols="3" class="header-cell">Feature</v-col>
-                <v-col cols="3" class="header-cell">Raw Value</v-col>
+                <v-col cols="2" class="header-cell">Feature</v-col>
+                <v-col cols="2" class="header-cell">Raw Value</v-col>
                 <v-col cols="3" class="header-cell">Memory</v-col>
+                <v-col cols="2" class="header-cell">
+                    Distance
+                    <v-tooltip
+                        text="Represents the similarity score between the memory and and normalized values">
+                        <template v-slot:activator="{ props }">
+                            <v-btn v-bind="props" icon="mdi-information-outline" variant="text">
+                            </v-btn>
+                        </template>
+                    </v-tooltip>
+                </v-col>
                 <v-col cols="2" class="header-cell">Normalized Value</v-col>
                 <v-col cols="1" align-start="end">
 
@@ -22,24 +32,21 @@
             <div class="table-body">
                 <v-row v-for="([feature, value], featureIndex) in frameInformation" :key="featureIndex"
                     class="table-row">
-                    <v-col cols="3" class="cell feature-name">{{ feature }}</v-col>
-                    <v-col cols="3" class="cell">{{ displayFeatureValue(feature, value.raw_value) }}</v-col>
+                    <v-col cols="2" class="cell feature-name">{{ feature }}</v-col>
+                    <v-col cols="2" class="cell">{{ displayFeatureValue(feature, value.raw_value) }}</v-col>
                     <v-col cols="3" class="cell">
                         <span v-if="value.memory && value.memory.length">
-                            <span v-for="(mem, memIndex) in value.memory" :key="memIndex" class="memory-item">
-                                <v-tooltip :text="getToolTipText(feature, value.distances)">
-                                    <template v-slot:activator="{ props }">
-                                        <v-chip v-bind="props" variant="flat" class="chip"
-                                            :style="chipColor(value.distances[featureIndex])">
-                                            {{ mem }}
-                                        </v-chip>
-                                    </template>
-                                </v-tooltip>
-                            </span>
+                            <v-chip v-bind="props" variant="flat" class="chip" :style="chipColor(value.distance)"
+                                v-for="(mem, memIndex) in value.memory" :key="memIndex">
+                                {{ mem }}
+                            </v-chip>
                         </span>
                         <span v-else>—</span>
                     </v-col>
-                    <v-col cols="3" class="cell">{{ displayFeatureValue(feature, value.normalized_value) }}</v-col>
+                    <v-col cols="2">
+                        {{ value.distance?.toFixed(3) }}
+                    </v-col>
+                    <v-col cols="2" class="cell">{{ displayFeatureValue(feature, value.normalized_value) }}</v-col>
                 </v-row>
             </div>
         </v-col>
@@ -50,7 +57,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, StyleValue } from "vue";
 import '../styles/main.css';
-import { fetchPersonValues } from '@/core/api';
 import { getEdgeColor } from "@/core/utils";
 import { useTrackedYearsStore } from "@/core/stores/trackedYears";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
@@ -62,16 +68,6 @@ const trackedFeatureStore = useTrackedFeaturesStore()
 const trackedYearsStore = useTrackedYearsStore()
 
 /**
- * Returns tooltip text for a memory chip showing the distance.
- * @param pretty_feature the (pretty) feature for which to retrieve the colour
- * @param distances distances between memory and raw values (in feature order)
- */
-function getToolTipText(pretty_feature: string, distances: number[]): string {
-    const feature_index = trackedFeatureStore.getTrackedFeatureIndex(pretty_feature, true)
-    return distances[feature_index] == null ? "No information" : `Distance to raw value: ${distances[feature_index].toFixed(3)}`
-}
-
-/**
  * Returns style object with color determined by distance score.
  */
 function chipColor(score: number): StyleValue {
@@ -81,6 +77,10 @@ function chipColor(score: number): StyleValue {
 }
 
 
+/**
+ * Formats a feature value for display.
+ * Handles nulls, numbers, and multi-string features.
+ */
 function displayFeatureValue(feature: string, value: string | number | null): string {
     if (!value) {
         return '—'
@@ -92,8 +92,9 @@ function displayFeatureValue(feature: string, value: string | number | null): st
 
     const valueString = value as string
 
+    // For multi-string fields (e.g. joined by '|'), split and format
     if (trackedFeatureStore.isFeatureMultiString(feature)) {
-        return valueString.split("|").filter(v => v != "").join(", ")
+        return valueString.split(trackedFeatureStore.getMultistringsSeparator).filter(v => v).join(", ")
     }
 
     return valueString
@@ -119,11 +120,12 @@ const frameInformation = computed(() => {
         const mem = props.memory == null ? null : props.memory[i]
         const score = diag.record_diagnostics == null ? null : diag.record_diagnostics.record_score
         const distances = diag.record_diagnostics == null ? null : diag.record_diagnostics.distances
+        console.log(distances)
         const values: CandidateRecordValues = {
-            raw_value: diag.record_raw_values[i],
-            normalized_value: diag.record_normalized_values[i],
+            raw_value: diag.record_raw_values?.[i],
+            normalized_value: diag.record_normalized_values?.[i],
             memory: mem,
-            distances: distances,
+            distance: distances?.[i],
             score: score
         }
 
@@ -135,15 +137,15 @@ const frameInformation = computed(() => {
         raw_value: trackedYearsStore.getYearFromFrameIdx(props.frameIdx),
         normalized_value: null,
         memory: null,
-        distances: null,
+        distance: null,
         score: null,
     });
 
     all_feature_values.set("Index dans le fichier", {
-        raw_value: props.recordIdx + 2, // +2 likely accounts for header row + 1-based indexing
+        raw_value: props.recordIdx + 2, // +2 accounts for header row + 1-based indexing
         normalized_value: null,
         memory: null,
-        distances: null,
+        distance: null,
         score: null,
     });
 
@@ -165,6 +167,7 @@ const frameInformation = computed(() => {
 
 
 .chip {
+    margin: 1px;
     color: var(--text-primary);
     font-weight: 450;
 }
@@ -192,17 +195,11 @@ const frameInformation = computed(() => {
     font-weight: bold;
 }
 
-.memory-cell {
-    display: flex;
-    flex-direction: column;
-}
-
 .memory-item {
     cursor: pointer;
     /* Indicates that the memory item is clickable */
     padding: 2px 0;
 }
-
 
 .header-cell {
     font-size: 16px;

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Snackbar, SNACKBAR_TYPES } from '@/types/components/snackbar'
-import { UNAUTHORIZED } from '../api'
+import { UNAUTHORIZED } from '../api/api'
 
 export const useErrorMessagesStore = defineStore('errorMessageStore', () => {
     const queue = ref<Snackbar[]>([])

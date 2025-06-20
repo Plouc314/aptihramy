@@ -49,7 +49,9 @@ class MaterializedFrameModel(BaseModel):
 
         record_diagnostics: list[TrackerRecordDiagnostics] = []
 
+        # matching_record_idx is None => frame.frame_diagnostic is not None
         # No matching record, take the candidates
+        # The candidates records are stored in the frame diagnostic
         if matching_record_idx is None:
             record_diagnostics = frame.frame_diagnostic.records
 

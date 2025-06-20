@@ -1,7 +1,7 @@
 export type IdxRawNormalizedValue = {
     recordIdx: number;
-    rawValue: string | number;
-    normalizedValue: string | number;
+    rawValue: string | number | null;
+    normalizedValue: string | number | null;
 };
 
 export interface FeatureMatchForYear {

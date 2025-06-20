@@ -32,7 +32,7 @@ import { ref, computed, watch, onMounted, handleError } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterRequest, } from '@/types/api/api';
 import '../styles/main.css';
-import { fetchFilteredTrackers } from '@/core/api';
+import { fetchFilteredTrackers } from '@/core/api/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
@@ -53,22 +53,14 @@ const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
 const filterStore = useFilterStore()
 const filters = filterStore.storedFilters
-const previousFilters = ref<FilterState[]>([])
 
 const remainingFeatures = computed<string[]>(() => {
     if (!trackedFeatures.value) {
         return [] as string[]
     }
 
-    const usedColumns: string[] = filters.map(value => value.feature).filter(v => v !== "")
-    const ret: string[] = []
-    for (let i = 0; i < trackedFeatures.value.pretty_features.length; i++) {
-        const prettyFeature = trackedFeatures.value.pretty_features[i]
-        if (!usedColumns.includes(prettyFeature)) {
-            ret.push(prettyFeature)
-        }
-    }
-    return ret
+    const usedFeatures: string[] = filters.map(value => value.feature).filter(v => v)
+    return trackedFeatures.value.pretty_features.filter(f => !usedFeatures.includes(f));
 })
 
 function addFilter(): void {
@@ -80,14 +72,16 @@ function removeFilter(filter: FilterState): void {
     search()
 }
 
-function getSuggestions(column: string): string[] {
-    const index = trackedFeatureStore.getTrackedFeatureIndex(column)
+// Provide suggestions for the input based on selected feature
+function getSuggestions(prettyFeature: string): string[] {
+    const index = trackedFeatureStore.getTrackedFeatureIndex(prettyFeature)
     if (index < 0 || suggestionsFeatureValues.value.length == 0) {
         return []
     }
     return Array.from(suggestionsFeatureValues.value[index])
 }
 
+// Update the filter value and re-run the search
 function editFilter(filter: FilterState): void {
     filterStore.editFilter(filter)
     search()
@@ -95,13 +89,13 @@ function editFilter(filter: FilterState): void {
 
 // filterResponse is updated whenever a request is made
 // When getting a filter response create a set of all values for each feature for the suggestions
-
 watch(filterResponse, (newFilterResponse) => {
     const tempsuggestionsFeatureValues = Array.from(
         { length: trackedFeatures.value.pretty_features.length },
         () => new Set<string>()
     );
 
+    // For each person (tracker), collect suggestions by feature
     newFilterResponse.forEach((trackerMemory, _) => {
         trackerMemory.forEach((suggestionsFeatureValues, index) => {
             // Should always be the case as the number of features should always be the same
@@ -135,8 +129,8 @@ async function search(): Promise<void> {
     for (const trackerID in response.data) {
         trackerIDMem.set(trackerID, response.data[trackerID])
     }
-    filterResponse.value = trackerIDMem
 
+    filterResponse.value = trackerIDMem
     querySent.value = false
 }
 

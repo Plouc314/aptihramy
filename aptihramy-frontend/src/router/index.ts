@@ -4,11 +4,13 @@ import TrackingChain from '@/pages/TrackingChain.vue'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // Correct import for createRouter
 import EditPage from '@/pages/EditPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
-import { checkDiskDataStatus, checkToken, fetchCurrentUserInformation } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages'
 import UploadDownloadPage from '@/pages/UploadDownloadPage.vue'
 import UsersPage from '@/pages/UsersPage.vue'
 import UpdatesPage from '@/pages/UpdatesPage.vue'
+import { checkDiskDataStatus } from '@/core/api/disk'
+import { checkToken } from '@/core/api/auth'
+import { fetchCurrentUserInformation } from '@/core/api/users'
 
 async function isSuperUser() {
   const errorMessageStore = useErrorMessagesStore();

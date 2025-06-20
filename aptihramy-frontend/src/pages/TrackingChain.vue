@@ -80,9 +80,6 @@
 
 
     </v-col>
-
-    <v-progress-circular v-if="!materializedTrackerFrames && !error" indeterminate :size="80" :width="10"
-        class="loading-spinner"></v-progress-circular>
     <div v-if="error" class="error-container">
         <v-card class="error-card">
             <v-card-text class="error-content">
@@ -91,16 +88,19 @@
             </v-card-text>
         </v-card>
     </div>
+    <v-progress-circular v-else-if="!materializedTrackerFrames" indeterminate :size="80" :width="10"
+        class="loading-spinner"></v-progress-circular>
+
 </template>
 
 <script setup lang="ts">
 
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { computed, ref, onMounted, watch, nextTick, hasInjectionContext } from "vue";
 import { Network, Edge, Node, IdType } from 'vis-network';
 import '../styles/main.css';
 
-import { fetchMaterializedFrames } from "@/core/api";
+import { fetchMaterializedFrames } from "@/core/api/api";
 import { ChainNode, MaterializedTrackerFrame, RecordValuesDiag, TrackerInformation } from "@/types/api/api";
 import { getEdgeColor, getNodeColor } from '@/core/utils';
 import TopBar from '@/components/TopBars/TopBar.vue';
@@ -112,33 +112,31 @@ import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 const OFFSET_X = 150
 const OFFSET_Y = 100
 
+const router = useRouter();
+
 const trackedYearsStore = useTrackedYearsStore()
 const trackedFeaturesStore = useTrackedFeaturesStore()
+const errorMessageStore = useErrorMessagesStore()
 
+/* Reactive References */
 const network = ref<Network>(null);
 const container = ref<HTMLElement | null>(null);
 const materializedTrackerFrames = ref<MaterializedTrackerFrame[] | null>(null)
 
-const errorMessageStore = useErrorMessagesStore()
+const selectedNodeID = ref<string | null>(null)
+const error = ref(false)
+const nodes = ref<Node[]>(null)
+const edges = ref<Edge[]>(null)
 
 
-const router = useRouter();
-
+/* Computed Properties */
 const networkStyle = computed(() => {
     return {
         height: selectedFrameRecordIdx.value ? '35vh' : '60vh',
     };
 });
 
-
-const selectedNodeID = ref<string | null>(null)
-
-const error = ref(false)
-
-const nodes = ref<Node[]>(null)
-const edges = ref<Edge[]>(null)
-
-
+// Computed: get the current node’s x/y index from its encoded ID
 const selectedNodeIndex = computed<NodePosition | null>(() => {
     if (selectedNodeID.value == null) {
         return null
@@ -146,7 +144,7 @@ const selectedNodeIndex = computed<NodePosition | null>(() => {
     return decodeId(selectedNodeID.value)
 })
 
-
+// Computed: Get record diagnostics for the currently selected node
 const selectedRecordValuesDiagnostic = computed<RecordValuesDiag | null>(() => {
     if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
         return null
@@ -156,6 +154,7 @@ const selectedRecordValuesDiagnostic = computed<RecordValuesDiag | null>(() => {
     return mFrame.records[selectedNodeIndex.value.y]
 })
 
+// Computed: Get memory for the currently selected node
 const selectedFrameMemory = computed<string[][]>(() => {
     if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
         return null
@@ -163,6 +162,7 @@ const selectedFrameMemory = computed<string[][]>(() => {
     return materializedTrackerFrames.value[selectedNodeIndex.value.x].memory
 })
 
+// Computed: Get frame and record index for the selected node
 const selectedFrameRecordIdx = computed<FrameRecordIdx>(() => {
     if (materializedTrackerFrames.value == null || selectedNodeIndex.value === null) {
         return null
@@ -174,7 +174,10 @@ const selectedFrameRecordIdx = computed<FrameRecordIdx>(() => {
 
 })
 
+/* Props */
 const props = defineProps<TrackinChainProps>();
+
+/* Network Options */
 const options = ref({
     //autoResize: true,
     interaction: {
@@ -199,6 +202,7 @@ const options = ref({
     },
 });
 
+/* Utility Functions */
 function closeFrame() {
     selectedNodeID.value = null
     resetZoom()
@@ -211,6 +215,25 @@ function encodeId(x: number, y: number): string {
 function decodeId(id: string): NodePosition {
     const [x, y] = id.split(',').map(Number);
     return { x, y };
+}
+
+/* Graph Setup Functions */
+
+function buildNode(id: string, year: number, positionX: number, positionY: number, matched: boolean): Node {
+    return {
+        id: id,
+        label: `${year}`,
+        shape: "circle",
+        color: getNodeColor(matched),
+        font: {
+            size: 24,
+            color: "#ffffff",
+            bold: "true"
+        },
+        x: positionX,
+        y: positionY,
+        fixed: { x: true, y: true }
+    }
 }
 
 function buildEdge(from: string, to: string, color: string, label: string, dashes: boolean): Edge {
@@ -231,74 +254,78 @@ function buildEdge(from: string, to: string, color: string, label: string, dashe
     }
 }
 
+// Calculate Y positions for nodes in a column (candidate nodes)
+function getNodeYPositions(offsetY: number, numNodes: number, hasMatchedYear: boolean): number[] {
+    let positions = [];
+
+    let step = hasMatchedYear ? 0 : offsetY
+    for (let i = 0; i < Math.round(numNodes / 2); i++) {
+        positions.push(step)
+        step += offsetY
+    }
+
+    step = -offsetY * Math.floor(numNodes / 2)
+    for (let i = 0; i < Math.floor(numNodes / 2); i++) {
+        positions.push(step)
+        step += offsetY
+    }
+    return positions
+
+}
+
 function setupEdges(mFrames: MaterializedTrackerFrame[]) {
-
-
     const newEdges: Edge[] = []
     for (let i = 0; i < mFrames.length - 1; i++) {
         const currentFrame = mFrames[i]
+        const nextFrame = mFrames[i + 1]
+
         if (currentFrame.matching_record_idx == null) {
             continue
         }
-        const nextFrame = mFrames[i + 1]
-
+        // Case 1: Next frame has no matching record — find the next available match and create edges to it
         // Next frame does not have a record index, create an edge to the next frame with a record index
         if (nextFrame.matching_record_idx == null) {
 
-            const index = mFrames.findIndex((frame, index) => frame.matching_record_idx != null && index > i)
-            if (index >= 0) {
+            const nextValidIdx = mFrames.findIndex((frame, index) => frame.matching_record_idx != null && index > i)
 
-                const nextMatchingRecords = mFrames[index].records
+            if (nextValidIdx >= 0) {
+                const fallbackFrame = mFrames[nextValidIdx]
 
-                for (let r = 0; r < nextMatchingRecords.length; r++) {
+                fallbackFrame.records.forEach((record, r) => {
+                    const recordDiagnostic = record.record_diagnostics;
+                    if (!recordDiagnostic) return;
 
-                    const recordDiagnostic = nextFrame.records[r].record_diagnostics
-
-                    if (!recordDiagnostic) {
-                        console.log("Setup edges: record does not have a diagnostic")
-                        continue
-                    }
-
-                    newEdges.push(buildEdge(encodeId(i, 0), encodeId(index, r), getEdgeColor(recordDiagnostic.record_score), `${Math.round(recordDiagnostic.record_score * 100) / 100}`, r != 0))
-
-                }
+                    newEdges.push(buildEdge(
+                        encodeId(i, 0),
+                        encodeId(nextValidIdx, r),
+                        getEdgeColor(recordDiagnostic.record_score),
+                        `${Math.round(recordDiagnostic.record_score * 100) / 100}`,
+                        r !== 0 
+                    ));
+                });
             }
         }
+        // Case 2: Normal progression to next frame
+        // Create edges to next frame's records
+        const hasMatchedYear = nextFrame.matching_record_idx != null;
+        nextFrame.records.forEach((record, r) => {
+            const recordDiagnostic = record.record_diagnostics;
+            if (!recordDiagnostic) return;
 
-        const nextNodeRecords = nextFrame.records
-        const hasMatchedYear = nextFrame.matching_record_idx != null
+            newEdges.push(buildEdge(
+                encodeId(i, 0),
+                encodeId(i + 1, r),
+                getEdgeColor(recordDiagnostic.record_score),
+                `${Math.round(recordDiagnostic.record_score * 100) / 100}`,
+                r !== 0 || !hasMatchedYear
+            ));
+        });
 
-        for (let r = 0; r < nextNodeRecords.length; r++) {
-
-            const recordDiagnostic = nextFrame.records[r].record_diagnostics
-            if (!recordDiagnostic) {
-                console.log("Setup edges: record does not have a diagnostic")
-                continue
-            }
-
-            newEdges.push(buildEdge(encodeId(i, 0), encodeId(i + 1, r), getEdgeColor(recordDiagnostic.record_score), `${Math.round(recordDiagnostic.record_score * 100) / 100}`, r != 0 || !hasMatchedYear))
-        }
-
-        edges.value = newEdges
     }
-}
-function buildNode(id: string, year: number, positionX: number, positionY: number, matched: boolean): Node {
-    return {
-        id: id,
-        label: `${year}`,
-        shape: "circle",
-        color: getNodeColor(matched),
-        font: {
-            size: 24,
-            color: "#ffffff",
-            bold: "true"
-        },
-        x: positionX,
-        y: positionY,
-        fixed: { x: true, y: true }
-    }
+    edges.value = newEdges
 }
 
+// Initialize all nodes
 function setupNodes(mFrames: MaterializedTrackerFrame[]) {
     const newNodes: Node[] = []
     let centerX = 0
@@ -318,32 +345,16 @@ function setupNodes(mFrames: MaterializedTrackerFrame[]) {
         const positions = getNodeYPositions(OFFSET_Y, records.length, hasMatchedYear)
 
         for (let r = 0; r < records.length; r++) {
-            // console.log(positions)
-            newNodes.push(buildNode(encodeId(i, r), year, i * OFFSET_X, positions[r], r == 0 && hasMatchedYear))
+            newNodes.push(buildNode(
+                encodeId(i, r), year,
+                i * OFFSET_X, positions[r],
+                r == 0 && hasMatchedYear))
         }
 
 
     }
 
     nodes.value = newNodes
-}
-
-function getNodeYPositions(offsetY: number, numNodes: number, hasMatchedYear): number[] {
-    let positions = [];
-
-    let step = hasMatchedYear ? 0 : offsetY
-    for (let i = 0; i < Math.round(numNodes / 2); i++) {
-        positions.push(step)
-        step += offsetY
-    }
-
-    step = -offsetY * Math.floor(numNodes / 2)
-    for (let i = 0; i < Math.floor(numNodes / 2); i++) {
-        positions.push(step)
-        step += offsetY
-    }
-    return positions
-
 }
 
 
@@ -361,43 +372,17 @@ function setupNetwork() {
         options.value
     );
     network.value.fit();
-    // Click event to zoom in on a node
+    // Click to zoom/select
     network.value.on("click", function (params) {
         if (params.nodes.length > 0) {
             selectedNodeID.value = params.nodes[0];
             zoomTo(selectedNodeID.value)
-        } else if (params.edges.length > 0) {
-            console.log(params)
-            //alert(`You clicked on Edge ${params}`);
         }
     });
-
-    // Hover event
-    network.value.on("hoverNode", function (params) {
-        const nodeId = params.node;
-    });
-
-    network.value.on("hoverEdge", function (params) {
-        //console.log("Hovering over edge:", params.edge);
-    });
-
-    network.value.on("blurEdge", function (params) {
-        //console.log("Stopped hovering over edge:", params.edge);
-    });
-
 }
 
-watch(materializedTrackerFrames, newMaterializedTrackerFrames => {
-    if (newMaterializedTrackerFrames === null) {
-        return
-    }
-    setupNodes(newMaterializedTrackerFrames)
-    setupEdges(newMaterializedTrackerFrames)
-    nextTick(() => setupNetwork())
-})
 
-
-
+/* Navigation Functions */
 function changeNode(offsetX: number, offsetY: number) {
 
     if (selectedNodeID.value == null) {
@@ -428,7 +413,6 @@ function zoomTo(nodeId: IdType) {
     });
 }
 
-// Reset zoom function
 function resetZoom() {
     nextTick(() => {
         network.value?.fit({
@@ -438,6 +422,21 @@ function resetZoom() {
     selectedNodeID.value = null
 
 };
+
+watch(materializedTrackerFrames, newMaterializedTrackerFrames => {
+    if (newMaterializedTrackerFrames === null) {
+        return
+    }
+
+    if (network.value) {
+        network.value.destroy();
+        network.value = null;
+    }
+
+    setupNodes(newMaterializedTrackerFrames)
+    setupEdges(newMaterializedTrackerFrames)
+    nextTick(() => setupNetwork())
+})
 
 onMounted(async () => {
     try {
@@ -460,20 +459,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.navigation-buttons {
-    align-items: center;
-    /* Increased space between buttons */
-    margin-top: 20px;
-}
-
-.navigation-buttons span {
-    font-size: 16px;
-    font-weight: bold;
-    /* Same color as the button icons */
-    margin-top: 5px;
-    /* Adjusts the spacing between icon and text */
-}
-
 .card-title {
     color: var(--text-primary)
 }

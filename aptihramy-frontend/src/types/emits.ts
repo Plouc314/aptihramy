@@ -1,8 +1,7 @@
-import { FrameIdxRecordIdxValue } from "./components/edit";
 import { FilterState } from "./components/filter";
 
 export type EditMetricsEmit = {
-    (event: 'update-values', prettyFeature: string, frameRecordValue: FrameIdxRecordIdxValue[]): void;
+    (event: 'update-values', prettyFeature: string, frameRecordValue: Map<number, string | number>): void;
 };
 
 

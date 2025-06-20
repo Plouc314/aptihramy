@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { TopBarEditPageProps, TopBarProps } from "../../types";
+import { TopBarProps } from "../../types";
 import "../../styles/theme.css"
 import { useRouter } from 'vue-router';
 
@@ -33,6 +33,5 @@ function goBack() {
 <style scoped>
 .top-bar-title {
     color: var(--primary);
-
 }
 </style>

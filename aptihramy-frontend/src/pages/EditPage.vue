@@ -1,10 +1,8 @@
 <template>
     <v-col>
         <TopBar title="Edit page" :goBackBtn="true">
-            <v-btn color="secondary" size="large" class="mx-2" @click="saveSelectedValues">
-                <template v-slot:prepend>
-                    <v-icon>mdi mdi-content-save</v-icon>
-                </template>
+            <v-btn :loading="isSaving" prepend-icon="mdi-content-save" variant="text" color="secondary" size="large"
+                class="mx-2" @click="saveSelectedValues">
                 Save
             </v-btn>
         </TopBar>
@@ -19,30 +17,28 @@
         <v-progress-circular v-else-if="featureYearValues.size === 0" indeterminate :size="80" :width="10"
             class="loading-spinner" />
         <v-expansion-panels v-else v-model="expandedFeatureIndexes" multiple>
-            <v-expansion-panel v-for="feature in allPrettyFeatures" :key="feature">
+            <v-expansion-panel v-for="prettyFeature in allPrettyFeatures" :key="prettyFeature">
                 <v-expansion-panel-title>
                     <v-row align="center">
                         <v-col cols="4" class="text-subtitle-1 font-weight-medium">
-                            {{ feature }}
+                            {{ prettyFeature }}
                         </v-col>
 
                         <v-spacer></v-spacer>
 
                         <v-col cols="auto">
-                            <v-btn color="error" variant="tonal" class="me-2" @click.stop="triggerReset(feature)">
-                                Reset to default values (normalized)
+                            <v-btn color="error" variant="tonal" class="me-2" @click.stop="triggerReset(prettyFeature)">
+                                Reset to default values
                             </v-btn>
-                            <v-btn color="success" variant="tonal" @click.stop="triggerSave(feature)">
-                                Save
-                            </v-btn>
+
                         </v-col>
                     </v-row>
                 </v-expansion-panel-title>
 
                 <v-expansion-panel-text>
-                    <EditMetrics :ref="(el) => setEditMetricsRef(feature, el)" :pretty-feature="feature"
-                        :frame-idx-values="featureYearValues.get(feature)"
-                        :updated-values="extractUpdatedValues(feature)" @update-values="updateValues" />
+                    <EditMetrics :ref="(el) => setEditMetricsRef(prettyFeature, el)" :pretty-feature="prettyFeature"
+                        :frame-idx-values="featureYearValues.get(prettyFeature)"
+                        :updated-values="updatedValues.get(prettyFeature)" @update-values="updateValues" />
                 </v-expansion-panel-text>
             </v-expansion-panel>
         </v-expansion-panels>
@@ -54,20 +50,23 @@
 import { ref, computed, onMounted } from "vue";
 import EditMetrics from "@/components/EditMetrics.vue";
 import TopBar from "@/components/TopBars/TopBar.vue";
-import { fetchCurrentUserInformation, fetchMaterializedFrames, postUpdateBatch } from "@/core/api";
 import { MaterializedTrackerFrame } from "@/types/api/api";
 import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import "../styles/main.css";
 import { UpdateBatch, UpdateEntry } from "@/types/api/update";
-import { EditPageProps, FeatureMatchForYear, FeatureYearMatchMap, FrameIdxRecordIdxValue } from "../types";
+import { EditPageProps, FeatureMatchForYear, FeatureYearMatchMap } from "../types";
 import { useTrackedYearsStore } from "@/core/stores/trackedYears";
+import { RefSymbol } from "@vue/reactivity";
+import { fetchCurrentUserInformation } from "@/core/api/users";
+import { postUpdateBatch } from "@/core/api/batch";
+import { fetchMaterializedFrames } from "@/core/api/api";
 
 const props = defineProps<EditPageProps>();
 const errorMessageStore = useErrorMessagesStore();
 const trackedFeaturesStore = useTrackedFeaturesStore();
 const trackedYearsStore = useTrackedYearsStore()
-
+const isSaving = ref(false)
 
 const editMetricsRefs = ref<Record<string, any>>({});
 
@@ -81,47 +80,88 @@ function triggerReset(feature: string) {
     editMetricsRefs.value[feature]?.resetToDefault?.();
 }
 
-function triggerSave(feature: string) {
-    editMetricsRefs.value[feature]?.save?.();
-}
-
 const error = ref(false);
 const frames = ref<MaterializedTrackerFrame[] | null>(null);
 
 const expandedFeatureIndexes = ref<number[]>([]);
 
 const allPrettyFeatures = computed(() => trackedFeaturesStore.getTrackedFeatures?.pretty_features ?? []);
-// feature -> frame idx -> [record idx, updated value]
-const updatedValues = ref(new Map<string, Map<number, [number, string | number]>>());
+// feature -> frameIdx ->  updated value
+const updatedValues = ref(new Map<string, Map<number, string | number>>());
 
-function updateValues(prettyFeature: string, frameRecordValue: FrameIdxRecordIdxValue[]) {
-    const values = updatedValues.value.get(prettyFeature) || new Map<number, [number, string | number]>();
-    frameRecordValue.forEach(v => {
-        values.set(v.frameIdx, [v.recordIdx, v.value]);
+function updateValues(prettyFeature: string, frameRecordValue: Map<number, string | number>) {
+    updatedValues.value.set(prettyFeature, frameRecordValue)
+}
+
+
+/**
+ * Compares the updated values with the original feature values to check
+ * if any changes have been made by the user.
+ *
+ * @returns {boolean} - Returns `true` if all updated values are identical
+ *                      to the original (normalized) values, `false` otherwise.
+ */
+function originalAndUpdatedAreEqual(): boolean {
+    let equal = true;
+
+    // Iterate through each updated feature and its associated frame/value map
+    updatedValues.value.forEach((updatedFrameMap, feature) => {
+        if (!equal) return; // Stop processing if already determined not equal
+
+        // Get the original values for this feature
+        const originalFrameMap = featureYearValues.value.get(feature);
+        if (!originalFrameMap) {
+            equal = false;
+            return;
+        }
+
+        // Compare each updated value to its original counterpart
+        updatedFrameMap.forEach((updatedValue, frameIdx) => {
+            const original = originalFrameMap.get(frameIdx);
+            if (!original) {
+                equal = false;
+                return;
+            }
+
+            // Find the matching record based on record index
+            const matchingRecord = original.candidates.find(
+                c => c.recordIdx === original.matchingRecordIndex
+            );
+
+            // If record not found or values differ, set equal to false
+            if (!matchingRecord || matchingRecord.normalizedValue !== updatedValue) {
+                equal = false;
+                return
+            }
+        });
     });
-    updatedValues.value.set(prettyFeature, values);
+
+    return equal;
 }
 
-function extractUpdatedValues(
-    feature: string
-): Map<number, string | number> {
-    const recordMap = updatedValues.value.get(feature)
-    if (!recordMap) return new Map();
-    return new Map(
-        Array.from(recordMap.entries()).map(([frameIdx, [, value]]) => [frameIdx, value])
-    );
-}
 
 async function saveSelectedValues() {
+    if (updatedValues.value.size == 0 || originalAndUpdatedAreEqual()) {
+        errorMessageStore.addInfoMessage("No changes to save");
+        return
+    }
+    isSaving.value = true;
     try {
         const entries: UpdateEntry[] = [];
+        updatedValues.value.forEach((frameIdxValue, prettyFeature) => {
+            const originalFrameMap = featureYearValues.value.get(prettyFeature);
+            if (!originalFrameMap) return;
 
-        updatedValues.value.forEach((frameIdxRecordIdxValue, feature) => {
-            Array.from(frameIdxRecordIdxValue.entries()).forEach(([frameIdx, [recordIdx, value]]) => {
+            const fieldIdx = trackedFeaturesStore.getTrackedFeatureIndex(prettyFeature);
+
+            frameIdxValue.forEach((value, frameIdx) => {
+                const original = originalFrameMap.get(frameIdx);
+                if (!original) return;
+
                 entries.push({
                     frame_idx: frameIdx,
-                    record_idx: recordIdx,
-                    field_idx: trackedFeaturesStore.getTrackedFeatureIndex(feature),
+                    record_idx: original.matchingRecordIndex,
+                    field_idx: fieldIdx,
                     value: value,
                 });
             });
@@ -136,11 +176,14 @@ async function saveSelectedValues() {
             entries,
         };
 
+    
         await postUpdateBatch(batch);
         errorMessageStore.addInfoMessage("Changes successfully stored");
     } catch (err) {
         errorMessageStore.handleError(err);
         error.value = true;
+    } finally {
+        isSaving.value = false;
     }
 }
 
@@ -173,7 +216,6 @@ onMounted(async () => {
         await trackedFeaturesStore.fetchAndStoreTrackedFeatures()
         await trackedYearsStore.fetchAndStoreTrackedYears()
         const fetchedFrames = await fetchMaterializedFrames(props.trackerID);
-        console.log(fetchedFrames)
         frames.value = fetchedFrames.frames;
     } catch (err) {
         errorMessageStore.handleError(err);

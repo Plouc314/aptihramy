@@ -28,20 +28,6 @@ class UpdateSystem:
             bind=self._engine, expire_on_commit=False, class_=AsyncSession
         )
 
-    def _serialize_value(self, value: Element, field_idx: int) -> str:
-        field = self._record_schema.fields[field_idx]
-        if field.dtype == bb.ElementType.String:
-            return value
-        elif field.dtype == bb.ElementType.MultiStrings:
-            return "\0".join(value)
-
-    def _deserialize_value(self, value: str, field_idx: int) -> Element:
-        field = self._record_schema.fields[field_idx]
-        if field.dtype == bb.ElementType.String:
-            return value
-        elif field.dtype == bb.ElementType.MultiStrings:
-            return value.split("\0")
-
     async def initialize(self) -> None:
         """
         Create all tables in the database.
@@ -53,7 +39,6 @@ class UpdateSystem:
         """
         Insert a new UpdateBatch and its entries into the database.
         """
-
         async with self._async_session() as session:
             session: AsyncSession
             async with session.begin():
@@ -70,7 +55,7 @@ class UpdateSystem:
                         frame_idx=entry.frame_idx,
                         record_idx=entry.record_idx,
                         field_idx=entry.field_idx,
-                        value=self._serialize_value(entry.value, entry.field_idx),
+                        value=entry.value,
                     )
                     batch_record.entries.append(entry_record)
 
@@ -103,10 +88,11 @@ class UpdateSystem:
                     frame_idx=entry.frame_idx,
                     record_idx=entry.record_idx,
                     field_idx=entry.field_idx,
-                    value=self._deserialize_value(entry.value, entry.field_idx),
+                    value=entry.value,
                 )
                 for entry in batch.entries
             ]
+            
             return UpdateBatch(
                 id=batch_id,
                 author=batch.author,
@@ -176,7 +162,7 @@ class UpdateSystem:
                 frame_idx=entry.frame_idx,
                 record_idx=entry.record_idx,
                 field_idx=entry.field_idx,
-                value=self._deserialize_value(entry.value, entry.field_idx),
+                value=entry.value,
             )
             for entry in entries
         ]
