@@ -15,7 +15,7 @@
 
         <!-- List of pending update batches -->
         <v-expansion-panels v-model="expandedIndexes" multiple v-else>
-            <v-expansion-panel v-for="(batch, batchIdx) in updateBatches" :key="batchIdx">
+            <v-expansion-panel v-for="(batch, batchIdx) in updateBatches" :key="batchIdx" class="expansion-bg">
 
                 <!-- If the batch has no entries -->
                 <v-card v-if="batch.entries.length === 0">
@@ -29,8 +29,11 @@
                 <v-col v-else>
                     <v-expansion-panel-title>
                         <v-row align="center">
-                            <v-col cols="4" class="text-subtitle-1 font-weight-medium">
+                            <v-col cols="2" class="text-subtitle-1 font-weight-medium">
                                 Author: {{ batch.author }}
+                            </v-col>
+                            <v-col class="text-subtitle-1 font-weight-medium">
+                                ({{ formatTimestamp(batch.timestamp) }})
                             </v-col>
 
                             <v-spacer></v-spacer>
@@ -157,6 +160,24 @@ function getUpdatedValue(value: string, field_idx: number) {
     return value
 }
 
+function formatTimestamp(timestamp: string): string {
+    // Fix fractional seconds to 3 digits for compatibility
+    const normalizedTimestamp = timestamp.replace(/(\.\d{3})\d+/, '$1');
+    const date = new Date(normalizedTimestamp);
+
+    if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+    }
+
+    return date.toLocaleString('en-EN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
+}
 
 
 /**
@@ -316,5 +337,9 @@ onMounted(async () => {
 .error-text {
     font-weight: bold;
     font-size: 18px;
+}
+
+.expansion-bg {
+    background-color: var(--background);
 }
 </style>

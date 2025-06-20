@@ -13,7 +13,12 @@
                         <v-row class="font-weight-bold align-center row">
                             <v-col cols="6">Tracking Graph (.beaver)</v-col>
                             <v-col cols="6">
-                                <v-btn color="primary" block @click="uploadGraph = true">Upload</v-btn>
+                                <v-btn color="primary" block @click="uploadGraph = true">
+                                    <template #default>
+                                        <v-icon start>mdi-upload</v-icon>
+                                        Upload
+                                    </template>
+                                </v-btn>
                                 <v-dialog v-model="uploadGraph" max-width="700">
                                     <Upload title="Upload tracking graph (.beaver file)"
                                         :upload-function="uploadBeaverFile" @close="uploadGraph = false" />
@@ -24,7 +29,12 @@
                         <v-row class="font-weight-bold align-center row">
                             <v-col cols="6">Raw Dataframes (.zip)</v-col>
                             <v-col cols="6">
-                                <v-btn color="primary" block @click="uploadRawDataframes = true">Upload</v-btn>
+                                <v-btn color="primary" block @click="uploadRawDataframes = true">
+                                    <template #default>
+                                        <v-icon start>mdi-upload</v-icon>
+                                        Upload
+                                    </template>
+                                </v-btn>
                                 <v-dialog v-model="uploadRawDataframes" max-width="700">
                                     <Upload title="Upload raw dataframes"
                                         :upload-function="(f) => uploadDataframes(f, false)"
@@ -36,7 +46,12 @@
                         <v-row class="font-weight-bold align-center">
                             <v-col cols="6">Normalized Dataframes (.zip)</v-col>
                             <v-col cols="6">
-                                <v-btn color="primary" block @click="uploadNormalizedDataframes = true">Upload</v-btn>
+                                <v-btn color="primary" block @click="uploadNormalizedDataframes = true">
+                                    <template #default>
+                                        <v-icon start>mdi-upload</v-icon>
+                                        Upload
+                                    </template>
+                                </v-btn>
                                 <v-dialog v-model="uploadNormalizedDataframes" max-width="700">
                                     <Upload title="Upload normalized dataframes"
                                         :upload-function="(f) => uploadDataframes(f, true)"
