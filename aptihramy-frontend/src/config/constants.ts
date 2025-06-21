@@ -15,3 +15,5 @@ export const COLUMN_RAW_TO_PRETTY = new Map(Array.from(COLUMN_PRETTY_TO_RAW, ([k
 
 export const COLUMNS_PRETTY = Array.from(COLUMN_PRETTY_TO_RAW.keys());
 export const COLUMNS_RAW = Array.from(COLUMN_PRETTY_TO_RAW.values());
+
+export const NO_INFORMATION = "No information"

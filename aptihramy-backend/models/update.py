@@ -52,6 +52,7 @@ class UpdateEntry(BaseModel):
 
 
 class UpdateBatch(BaseModel):
+    id: int | None = None
     author: str
     entries: List[UpdateEntry]
     accepted: bool

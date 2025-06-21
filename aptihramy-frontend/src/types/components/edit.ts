@@ -10,9 +10,3 @@ export interface EditMetricsProps {
     frameIdxValues: Map<number, FeatureMatchForYear>;
     updatedValues: Map<number, string | number> | undefined;
 }
-
-export interface FrameIdxRecordIdxValue {
-    frameIdx: number;
-    recordIdx: number;
-    value: string | number;
-}

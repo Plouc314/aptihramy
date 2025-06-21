@@ -6,7 +6,8 @@
         <v-combobox v-model="input" :items="props.suggestions" label="Search..." clearable dense hide-details
             class="filter-select" variant="outlined"></v-combobox>
 
-        <v-btn class="error-btn" :disabled="!canRemove" prepend-icon="mdi-delete" rounded="lg" @click="deleteFilter">
+        <v-btn class="error-btn" variant="tonal" :disabled="!props.canRemove" prepend-icon="mdi-delete" rounded="lg"
+            @click="deleteFilter">
             Delete filter
         </v-btn>
     </v-row>
@@ -14,7 +15,7 @@
 
 <script setup lang="ts">
 
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import "../styles/main.css";
 import { FilterEmits, FilterProps, FilterState } from '../types';
 
@@ -26,21 +27,31 @@ const emit = defineEmits<FilterEmits>();
 const selectedFeature = ref<string | null>(props.feature);
 const input = ref<string>(props.value)
 
-// Watch for feature change and reset selectedRows
+// When the selected feature changes, reset the input and notify parent
 watch(selectedFeature, () => {
-    input.value = "";
-    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: "" }
-    emit('edit-filter', a);
+    input.value = ""; // Clear previous input
+    const update: FilterState = {
+        id: props.id,
+        feature: selectedFeature.value,
+        input: ""
+    };
+    emit('edit-filter', update);
 });
 
-watch(input, (input) => {
-    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: input }
-    emit('edit-filter', a);
+// When the input changes, notify parent of the new value (lowercased)
+watch(input, (newInput) => {
+    const update: FilterState = {
+        id: props.id,
+        feature: selectedFeature.value,
+        input: newInput.toLowerCase()
+    };
+    emit('edit-filter', update);
 });
 
+// Trigger delete event with current filter state
 function deleteFilter() {
-    const a: FilterState = { id: props.id, feature: selectedFeature.value, input: "" }
-    emit('delete-filter', a)
+    const deletion: FilterState = { id: props.id, feature: selectedFeature.value, input: "" }
+    emit('delete-filter', deletion)
 }
 
 </script>

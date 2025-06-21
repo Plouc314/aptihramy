@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Depends, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi_users.db import SQLAlchemyUserDatabase
 
 from blitzbeaver.literals import ID, Element
 from dotenv import load_dotenv
@@ -27,6 +28,9 @@ from models import (
     FilterRequest,
     FilterResponse,
     RecordModel,
+    RecordRequest,
+    RecordResult,
+    RecordsResponse,
     TrackingChainModel,
     TrackerDiagnosticsModel,
     TrackedYearsModel,
@@ -191,7 +195,7 @@ async def accept_update_batch(batch_id: int) -> None:
 
 
 @app.get(
-    "/api/update/unaccepted-batches", dependencies=[Depends(auth.current_active_user)]
+    "/api/update/unaccepted-batches", dependencies=[Depends(auth.current_super_user)]
 )
 async def get_unaccepted_batches() -> list[int]:
     """
@@ -226,12 +230,14 @@ async def get_image(filename: str):
 def filter_data(
     request: FilterRequest,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
-):
+) -> FilterResponse:
     """
     Filters data based on provided feature search values.
 
     Args:
-        request (FilterRequest): JSON request body containing feature filters.
+        request (FilterRequest):
+            - JSON request body containing feature filters.
+            - Pretty feature: search terms
 
     Returns:
         FilterResponse: Response containing the filtered data.
@@ -251,7 +257,12 @@ def filter_data(
         raw_feature_search_value
     )
 
-    data = data_service.get_all_memory_from_last_frame_for_trackers(matching_trackers)
+    limit = len(matching_trackers)
+    if request.query_limit:
+        limit = min(limit, request.query_limit)
+    data = data_service.get_all_memory_from_last_frame_for_trackers(
+        list(matching_trackers)[:limit]
+    )
     return FilterResponse(data=data)
 
 
@@ -263,11 +274,20 @@ def get_tracked_features(
     return {"raw_features": raw_features, "pretty_features": pretty_features}
 
 
+@app.get(
+    "/api/features/multi-strings", dependencies=[Depends(auth.current_active_user)]
+)
+def get_tracked_features(
+    data_service: DataService = Depends(DataService.get_instance(ddh)),
+):
+    return {"multistrings_features": data_service.get_multistrings_features()}
+
+
 @app.get("/api/tracker", dependencies=[Depends(auth.current_active_user)])
 def get_tracker_id_information(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
-):
+) -> TrackerDiagnosticsModel:
     return TrackerDiagnosticsModel.tracker_diagnostics_to_base_model(
         data_service.get_diagnostics(tracker_id)
     )
@@ -277,7 +297,7 @@ def get_tracker_id_information(
 def get_tracking_chain(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
-):
+) -> TrackingChainModel:
     return TrackingChainModel.tracking_chain_to_base_model(
         data_service.get_tracking_chain(tracker_id)
     )
@@ -287,17 +307,17 @@ def get_tracking_chain(
 def get_materialized_frames(
     tracker_id: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
-):
+) -> MaterializedTrackingChainModel:
     materialized_chain = data_service.get_materialized_tracking_chain(tracker_id)
     frame_idx_rec_idxs = data_service.get_frame_idx_record_idxs_from_materialized_chain(
         materialized_chain
     )
 
-    # frame idx -> record idx -> raw values [value_of_feature1, value_of_feature2)
+    # (frame idx, record idx) -> raw values [value_of_feature1, value_of_feature2]
     raw_values: dict[tuple[int, int], list[Element]] = {}
-    # frame idx -> record idx -> raw values [value_of_feature1, value_of_feature2)
-
+    # (frame idx , record idx) -> raw values [value_of_feature1, value_of_feature2]
     normalized_values: dict[tuple[int, int], list[Element]] = {}
+    
     for frame_idx, record_idxs in frame_idx_rec_idxs.items():
         for record_idx in record_idxs:
             raw_values[(frame_idx, record_idx)] = (
@@ -316,14 +336,21 @@ def get_materialized_frames(
     )
 
 
-@app.get("/api/record", dependencies=[Depends(auth.current_active_user)])
+@app.get("/api/record", dependencies=[Depends(auth.current_super_user)])
 def get_record_values(
     frame_idx: int,
     record_idx: int,
     data_service: DataService = Depends(DataService.get_instance(ddh)),
 ):
     try:
-        return RecordModel(records=data_service.get_record(frame_idx, record_idx))
+        return RecordModel(
+            raw_values=data_service.get_raw_values_for_frame_idx_record_idx(
+                frame_idx, record_idx
+            ),
+            normalized_values=data_service.get_normalized_values_for_frame_idx_record_idx(
+                frame_idx, record_idx
+            ),
+        )
     except Exception:
         raise HTTPException(
             status_code=400,
@@ -331,8 +358,47 @@ def get_record_values(
         )
 
 
+@app.post(
+    "/api/records",
+    dependencies=[Depends(auth.current_super_user)],
+)
+def get_multiple_record_values(
+    request: RecordRequest,
+    data_service: DataService = Depends(DataService.get_instance(ddh)),
+) -> RecordsResponse:
+    results: list[RecordResult] = []
+
+    for pair in request.pairs:
+        try:
+            record = RecordModel(
+                raw_values=data_service.get_raw_values_for_frame_idx_record_idx(
+                    pair.frame_idx, pair.record_idx
+                ),
+                normalized_values=data_service.get_normalized_values_for_frame_idx_record_idx(
+                    pair.frame_idx, pair.record_idx
+                ),
+            )
+            results.append(
+                RecordResult(
+                    frame_idx=pair.frame_idx,
+                    record_idx=pair.record_idx,
+                    values=record,
+                )
+            )
+        except Exception:
+            results.append(
+                RecordResult(
+                    frame_idx=pair.frame_idx,
+                    record_idx=pair.record_idx,
+                    error=f"Invalid frame index: {pair.frame_idx} or record index: {pair.record_idx}",
+                )
+            )
+
+    return RecordsResponse(results=results)
+
+
 @app.get("/api/tracked_years", dependencies=[Depends(auth.current_active_user)])
 def get_tracked_years(
     data_service: DataService = Depends(DataService.get_instance(ddh)),
-):
+) -> TrackedYearsModel:
     return TrackedYearsModel(tracked_years=data_service.get_tracked_years())

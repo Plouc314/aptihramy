@@ -4,10 +4,36 @@ import TrackingChain from '@/pages/TrackingChain.vue'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router' // Correct import for createRouter
 import EditPage from '@/pages/EditPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
-import { getToken } from '@/core/auth'
-import { checkDiskDataStatus, checkToken } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages'
-import UploadPage from '@/pages/UploadPage.vue'
+import UploadDownloadPage from '@/pages/UploadDownloadPage.vue'
+import UsersPage from '@/pages/UsersPage.vue'
+import UpdatesPage from '@/pages/UpdatesPage.vue'
+import { checkDiskDataStatus } from '@/core/api/disk'
+import { checkToken } from '@/core/api/auth'
+import { fetchCurrentUserInformation } from '@/core/api/users'
+
+async function isSuperUser() {
+  const errorMessageStore = useErrorMessagesStore();
+  try {
+    const userInfo = await fetchCurrentUserInformation()
+    return userInfo.is_superuser
+
+  } catch (error) {
+    errorMessageStore.handleError(error)
+  }
+}
+
+async function isDiskReady() {
+  const errorMessageStore = useErrorMessagesStore();
+  try {
+    const diskStatus = await checkDiskDataStatus();
+    return diskStatus.ready
+
+  } catch (error) {
+    errorMessageStore.handleError(error)
+  }
+}
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -16,30 +42,75 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    name: 'UploadPage',
-    component: UploadPage,
-    meta: { requiresAuth: true }
+    name: 'UploadDownloadPage',
+    component: UploadDownloadPage,
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      if (from.name === "LoginPage" || from.name === "UploadPage") {
+        const errorMessageStore = useErrorMessagesStore();
+
+        try {
+          const databaseStatus = await checkDiskDataStatus();
+          if (databaseStatus.ready) {
+            return "/home"
+          }
+
+        } catch (error) {
+          errorMessageStore.handleError(error)
+        }
+      }
+      return true
+    },
   },
   {
-    path: '/home-page',
+    path: '/home',
     name: 'HomePage',
     component: HomePage,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
   },
   {
     path: '/tracking-chain/:trackerID',
     name: 'TrackingChain',
     component: TrackingChain,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
 
   },
   {
-    path: '/edit-page/:trackerID',
+    path: '/edit/:trackerID',
     name: 'EditPage',
     component: EditPage,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
+  },
+  {
+    path: '/users',
+    name: 'UsersPage',
+    component: UsersPage,
+    props: true,
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isSuperUser() && isDiskReady()
+    },
+  },
+  {
+    path: '/updates',
+    name: 'UpdatesPage',
+    component: UpdatesPage,
+    props: true,
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isSuperUser() && isDiskReady()
+    },
   }
 ]
 
@@ -48,32 +119,18 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
   const errorMessageStore = useErrorMessagesStore();
 
   try {
     const isAuthenticated = await checkToken();
-
+    // User not logged in
     if (to.meta.requiresAuth && !isAuthenticated) {
       errorMessageStore.addErrorMessage('Token expired, redirecting to login page');
-      return next('/login');
+      return '/login';
     }
-
-    // First time opening the web site
-    if (from.fullPath === '/' && to.fullPath === '/' && isAuthenticated) {
-      const databaseStatus = await checkDiskDataStatus();
-
-      if (databaseStatus.ready) {
-        return next('/home-page');
-      }
-    }
-
-    next(); // default proceed
   } catch (error) {
-    // Handle any unexpected errors, optionally show message or log
-    errorMessageStore.addErrorMessage('An unexpected error occurred during navigation.');
-    console.error('Router guard error:', error);
-    next(false); // Cancel navigation on error
+    errorMessageStore.handleError(error)
   }
 });
 

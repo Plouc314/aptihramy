@@ -9,26 +9,25 @@
 /* Header */
 .table-header-row {
     background-color: var(--background-alt);
-    border-bottom: 1px solid var(--border-color);
     padding: 8px 0;
     display: flex;
     justify-content: center;
 }
 
 .table-header-text {
-    font-weight: bold;
+    font-weight: 700;
     color: var(--text-primary);
     text-align: center;
 }
 
 /* Rows */
 .table-data-row {
-    background-color: var(--table-alt);
+    background-color: var(--table);
     padding: 8px 0;
 }
 
 .table-data-row:nth-child(odd) {
-    background-color: var(--surface);
+    background-color: var(--table-alt);
     padding: 8px 0;
 
 }

@@ -36,10 +36,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { login } from '@/core/api'
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import '../styles/main.css';
 import { setToken } from '@/core/auth';
+import { login } from '@/core/api/auth';
 
 
 const errorMessagestore = useErrorMessagesStore()
@@ -51,7 +51,7 @@ const router = useRouter()
 const formRef = ref()
 const formValid = ref(true)
 
-// Rules
+
 const requiredRule = (v: string) => !!v || 'This field is required'
 const emailRule = (v: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || 'Must be a valid email'
@@ -61,15 +61,15 @@ async function handleLogin() {
     const isValid = await formRef.value?.validate()
     if (!isValid.valid) return
 
-    login(email.value, password.value)
-        .then((token) => {
-            setToken(token)
-            errorMessagestore.addInfoMessage('Successfully logged in')
-            router.push({ name: 'UploadPage' })
-        })
-        .catch(() => {
-            errorMessagestore.addErrorMessage('Invalid email or password')
-        })
+    try {
+        const token = await login(email.value, password.value)
+        setToken(token)
+        errorMessagestore.addInfoMessage('Successfully logged in')
+        router.push({ name: 'UploadDownloadPage' })
+    } catch (error) {
+        errorMessagestore.handleError(error)
+    }
+  
 }
 </script>
 

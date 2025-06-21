@@ -20,7 +20,7 @@
             class="loading-spinner"></v-progress-circular>
 
 
-        <display-people v-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
+        <display-people v-else-if="filterResponse.size != 0" :data="filterResponse" :is-loading="querySent"
             class="display-people"></display-people>
     </v-col>
 </template>
@@ -28,11 +28,11 @@
 <script setup lang="ts">
 import DisplayPeople from '@/components/DisplayPeople.vue';
 import TopBar from '@/components/TopBars/TopBar.vue';
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, handleError } from 'vue';
 import Filter from '@/components/Filter.vue';
 import { FilterRequest, } from '@/types/api/api';
 import '../styles/main.css';
-import { fetchFilteredTrackers, UNAUTHORIZED } from '@/core/api';
+import { fetchFilteredTrackers } from '@/core/api/api';
 import { useErrorMessagesStore } from '@/core/stores/errorMessages';
 import { useTrackedFeaturesStore } from '@/core/stores/trackedFeatures';
 import { useTrackedYearsStore } from '@/core/stores/trackedYears';
@@ -42,13 +42,12 @@ import { FilterState, TrackerIDMemory } from '@/types';
 
 const errorMessageStore = useErrorMessagesStore()
 const trackedFeatureStore = useTrackedFeaturesStore()
-trackedFeatureStore.fetchAndStoreTrackedFeatures()
 const trackedYearsStore = useTrackedYearsStore()
-trackedYearsStore.fetchAndStoreTrackedYears()
 
 const trackedFeatures = computed(() => trackedFeatureStore.getTrackedFeatures)
 const trackedYears = computed(() => trackedYearsStore.trackedYears)
 
+// feature -> list of values
 const filterResponse = ref<TrackerIDMemory>(new Map())
 const querySent = ref(false)
 const suggestionsFeatureValues = ref<Set<string>[]>([])
@@ -60,15 +59,8 @@ const remainingFeatures = computed<string[]>(() => {
         return [] as string[]
     }
 
-    const usedColumns: string[] = filters.map(value => value.feature).filter(v => v !== "")
-    const ret: string[] = []
-    for (let i = 0; i < trackedFeatures.value.pretty_features.length; i++) {
-        const prettyFeature = trackedFeatures.value.pretty_features[i]
-        if (!usedColumns.includes(prettyFeature)) {
-            ret.push(prettyFeature)
-        }
-    }
-    return ret
+    const usedFeatures: string[] = filters.map(value => value.feature).filter(v => v)
+    return trackedFeatures.value.pretty_features.filter(f => !usedFeatures.includes(f));
 })
 
 function addFilter(): void {
@@ -80,14 +72,16 @@ function removeFilter(filter: FilterState): void {
     search()
 }
 
-function getSuggestions(column: string): string[] {
-    const index = trackedFeatureStore.getTrackedFeatureIndex(column)
+// Provide suggestions for the input based on selected feature
+function getSuggestions(prettyFeature: string): string[] {
+    const index = trackedFeatureStore.getTrackedFeatureIndex(prettyFeature)
     if (index < 0 || suggestionsFeatureValues.value.length == 0) {
         return []
     }
     return Array.from(suggestionsFeatureValues.value[index])
 }
 
+// Update the filter value and re-run the search
 function editFilter(filter: FilterState): void {
     filterStore.editFilter(filter)
     search()
@@ -100,6 +94,8 @@ watch(filterResponse, (newFilterResponse) => {
         { length: trackedFeatures.value.pretty_features.length },
         () => new Set<string>()
     );
+
+    // For each person (tracker), collect suggestions by feature
     newFilterResponse.forEach((trackerMemory, _) => {
         trackerMemory.forEach((suggestionsFeatureValues, index) => {
             // Should always be the case as the number of features should always be the same
@@ -112,44 +108,48 @@ watch(filterResponse, (newFilterResponse) => {
 })
 
 
-function search(): void {
+async function search(): Promise<void> {
 
     const featureSearchValue = new Map<string, string>();
     if (filters && !filters.some(v => v.input && v.input.length > 2) || querySent.value) {
         return
     }
 
-    console.log("Send search")
     for (const filter of filters) {
         if (trackedFeatures.value.pretty_features.includes(filter.feature)) {
             featureSearchValue.set(filter.feature, filter.input)
         }
     }
 
-    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue) }
+    const request: FilterRequest = { filters: Object.fromEntries(featureSearchValue), query_limit: 1000 }
     querySent.value = true
-    fetchFilteredTrackers(request)
-        .then((response) => {
-            const trackerIDMem: TrackerIDMemory = new Map()
-            for (const trackerID in response.data) {
-                trackerIDMem.set(trackerID, response.data[trackerID])
-            }
-            filterResponse.value = trackerIDMem
-        })
-        .catch((err) => {
-            errorMessageStore.handleError(err)
-        }).finally(() => {
-            querySent.value = false
-        })
+    const response = await fetchFilteredTrackers(request)
+
+    const trackerIDMem: TrackerIDMemory = new Map()
+    for (const trackerID in response.data) {
+        trackerIDMem.set(trackerID, response.data[trackerID])
+    }
+
+    filterResponse.value = trackerIDMem
+    querySent.value = false
 }
 
-onMounted(() => search())
+onMounted(async () => {
+    try {
+        await trackedYearsStore.fetchAndStoreTrackedYears()
+        await trackedFeatureStore.fetchAndStoreTrackedFeatures()
+        await search()
+    } catch (error) {
+        errorMessageStore.handleError(error)
+    }
+
+})
 </script>
 
 
 <style scoped>
 .display-people {
-    height: 75vh;
+    max-height: 75vh;
 }
 
 .header-card {

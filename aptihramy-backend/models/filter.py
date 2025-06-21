@@ -9,3 +9,4 @@ class FilterResponse(BaseModel):
 
 class FilterRequest(BaseModel):
     filters: Dict[str, str]
+    query_limit: int | None

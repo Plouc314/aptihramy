@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Snackbar, SNACKBAR_TYPES } from '@/types/components/snackbar'
-import { UNAUTHORIZED } from '../api'
+import { UNAUTHORIZED } from '../api/api'
 
 export const useErrorMessagesStore = defineStore('errorMessageStore', () => {
     const queue = ref<Snackbar[]>([])
@@ -12,7 +12,7 @@ export const useErrorMessagesStore = defineStore('errorMessageStore', () => {
         if (error.message === UNAUTHORIZED) {
             router.push({ name: 'LoginPage' })
         } else {
-            addErrorMessage(`An error occurred: ${error}`)
+            addErrorMessage(error)
         }
         console.log(error)
     }

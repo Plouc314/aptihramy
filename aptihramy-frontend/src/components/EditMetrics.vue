@@ -19,104 +19,165 @@
     </v-card>
 
     <v-row class="table-header-row">
-        <v-col v-for="header in ['Year', 'Raw Value', 'Candidate Values', 'Normalized', 'Selected']" :key="header"
+        <v-col v-for="header in ['Year', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']" :key="header"
             :cols="header === 'Candidate Values' ? 3 : undefined">
             {{ header }}
         </v-col>
     </v-row>
 
-    <v-row v-for="[frameIdx, values] in frameIdxValues" :key="frameIdx" class="table-data-row">
+    <v-row v-for="(frameIdx, idx) in frameIdxValues.keys()" :key="idx" class="table-data-row">
+        <!-- Year -->
         <v-col>{{ trackedYearsStore.getYearFromFrameIdx(frameIdx) }}</v-col>
+
         <v-col>
-            <v-chip>{{ originalFrameIdxValue[frameIdx] }}</v-chip>
+            <v-chip class="chip" v-for="(rawValue, rawIdx) in getRawValue(frameIdx)" :key="rawIdx">{{ rawValue
+                }}</v-chip>
         </v-col>
-        <v-col cols="3">
-            <v-chip-group column>
-                <v-chip v-for="value in candidateValues(frameIdx)" :key="value">
-                    {{ value }}
-                </v-chip>
-            </v-chip-group>
-        </v-col>
+
+        <!-- Normalized value -->
         <v-col>
-            <v-tooltip
-                :text="normalizedValue(frameIdx) === selectedFrameIdxValue[frameIdx] ? 'Normalized and selected values match' : 'Normalized and selected values differ'">
+            <v-tooltip v-for="(normValue, normIdx) in getNormalizedValue(frameIdx)" :key="normIdx"
+                :text="selectedFrameIdxValue[frameIdx]?.includes(normValue) ? 'Normalized and selected values match' : 'Normalized and selected values differ'">
                 <template v-slot:activator="{ props }">
                     <v-chip v-bind="props"
-                        :style="{ backgroundColor: getColorForMatch(normalizedValue(frameIdx) === selectedFrameIdxValue[frameIdx]) }"
+                        :style="{ backgroundColor: getColorForMatch(selectedFrameIdxValue[frameIdx]?.includes(normValue)) }"
                         class="chip">
-                        {{ normalizedValue(frameIdx) }}
+                        {{ normValue }}
                     </v-chip>
                 </template>
             </v-tooltip>
         </v-col>
-        <v-col>
-            <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues" label="Select value" clearable
-                dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }" variant="outlined"></v-combobox>
-        </v-col>
-    </v-row>
 
-    <v-row class="mt-4" justify="space-between">
-        <v-col cols="3">
-            <v-btn class="error-btn" variant="tonal" @click="resetValues" block>Reset to default values
-                (normalized)</v-btn>
+        <!-- Candidate values -->
+        <v-col>
+            <v-chip v-if="candidateValues(frameIdx).length !== 0" v-for="candidateValue in candidateValues(frameIdx)"
+                :key="candidateValue" class="chip">
+                {{ candidateValue }}
+            </v-chip>
+            <v-chip v-else>
+                {{ NO_INFORMATION }}
+            </v-chip>
         </v-col>
-        <v-col cols="2">
-            <v-btn class="ok-btn" variant="tonal" @click="save" block>Save</v-btn>
+
+        <!-- Selected value -->
+        <v-col>
+            <div v-if="isFeatureMultiString">
+                <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues" label="Select value" multiple
+                    clearable dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
+                    variant="outlined" />
+            </div>
+            <div v-else>
+                <v-combobox :model-value="selectedFrameIdxValue[frameIdx][0] ?? null"
+                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = val ? [val] : []" :items="allValues"
+                    label="Select value" :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
+                    variant="outlined" />
+            </div>
         </v-col>
     </v-row>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { getColorForMatch } from "@/core/utils";
-import { useErrorMessagesStore } from "@/core/stores/errorMessages";
 import "../styles/main.css";
 import { useTrackedFeaturesStore } from "@/core/stores/trackedFeatures";
 import { useTrackedYearsStore } from "@/core/stores/trackedYears";
 import { EditMetricsEmit, EditMetricsProps, FeatureMatchForYear } from "../types";
+import { NO_INFORMATION } from "@/config/constants";
 
-const errorMessageStore = useErrorMessagesStore();
 const trackedYearsStore = useTrackedYearsStore()
-
+const trackedFeatures = useTrackedFeaturesStore()
 const props = defineProps<EditMetricsProps>();
 const emit = defineEmits<EditMetricsEmit>();
+defineExpose({ resetToDefault });
 
+// State for storing frame index values and their associated feature matches
 const frameIdxValues = ref<Map<number, FeatureMatchForYear>>(new Map());
-// frame idx -> value
-const selectedFrameIdxValue = reactive<Record<number, string | number>>({});
-const originalFrameIdxValue = reactive<Record<number, string | number>>({});
-const animatedFrameIdxs = ref(new Set<number>());
-const allValues = ref<(string | number)[]>([]);
-const valueToReplace = ref<string | number | null>(null);
-const replacementValue = ref<string | number | null>(null);
+// Reactive object for storing currently selected values for each frame index. 
+// At the beginning the values are normalized values
+const selectedFrameIdxValue = reactive<Record<number, null | string[]>>({});
 
+// Map for storing original normalized values for each frame index
+const originalFrameIdxValue = ref<Map<number, null | string[]>>(new Map());
+
+// Set for tracking frame indices with active animations
+const animatedFrameIdxs = ref(new Set<number>());
+// List of all available values for selection
+const allValues = ref<string[]>([]);
+// Value to be replaced in the replace functionality
+const valueToReplace = ref<string | null>(null);
+// Replacement value for the replace functionality
+const replacementValue = ref<string | null>(null);
+
+// Computed property for the combobox, including an "All" option
 const allValuesToReplace = computed(() => ["All", ...allValues.value]);
 
-function candidateValues(frameIdx: number) {
+const isFeatureMultiString = ref(true)
+const separator = ref<string>("|")
+
+// Splits the given string with the separator and removes null, undefined and empty strings
+function splitFilter(a: string | null): string[] | null {
+    if (!a) return null
+    return a.split(separator.value).filter(s => s)
+}
+
+// Get all candidate values (raw + normalized), deduplicated
+// Candidate values include also the values of the candidate records (matching record + the others)
+function candidateValues(frameIdx: number): string[] {
     const candidates = frameIdxValues.value.get(frameIdx)?.candidates || [];
-    const a = candidates.flatMap(v => [v.rawValue, v.normalizedValue])
-    return Array.from(new Set(a)).filter(v => v !== "")
+    let candidatesFlat = candidates
+        .flatMap(v => [v.rawValue, v.normalizedValue])
+        .filter(v => v !== null && v !== "")
+        .map(v => v.toString())
+
+    if (isFeatureMultiString.value) {
+        candidatesFlat = candidatesFlat.flatMap(v => splitFilter(v))
+    }
+
+    return Array.from(new Set(candidatesFlat))
 };
 
-function normalizedValue(frameIdx: number) {
+// Get normalized values for a given frame index
+function getNormalizedValue(frameIdx: number): string[] {
+    return getRawOrNormalizedValue(frameIdx, true)
+};
+
+// Get the raw value for a frame index
+function getRawValue(frameIdx: number): string[] {
+    return getRawOrNormalizedValue(frameIdx, false)
+}
+// Helper function to retrieve raw or normalized values for a frame index
+function getRawOrNormalizedValue(frameIdx: number, normalized: boolean): string[] {
     const matchCandidates = frameIdxValues.value.get(frameIdx)
     if (matchCandidates) {
         const candidates = matchCandidates.candidates
         const index = candidates.findIndex(c => c.recordIdx == matchCandidates.matchingRecordIndex)
         if (index < 0) {
-            return "No infomation"
+            return [NO_INFORMATION]
         }
-        return candidates[index].normalizedValue
 
+        const ret = normalized ? candidates[index].normalizedValue : candidates[index].rawValue
+
+        if (ret) {
+            const s = ret.toString()
+            if (isFeatureMultiString.value) {
+                return splitFilter(s)
+            }
+            return [s]
+        }
     }
-    return "No information"
-};
+    return [NO_INFORMATION]
+}
 
+// Perform value replacement based on user selection
 function replaceValue() {
     if (!valueToReplace.value || !replacementValue.value) return;
 
     animatedFrameIdxs.value.clear();
-    const target = valueToReplace.value === "All" ? Object.keys(selectedFrameIdxValue) : Object.keys(selectedFrameIdxValue).filter(year => selectedFrameIdxValue[year] === valueToReplace.value);
+    const target = valueToReplace.value === "All" ?
+        Object.keys(selectedFrameIdxValue) :
+        Object.keys(selectedFrameIdxValue)
+            .filter(year => selectedFrameIdxValue[year] === valueToReplace.value);
 
     target.forEach(year => {
         animatedFrameIdxs.value.add(Number(year));
@@ -126,50 +187,98 @@ function replaceValue() {
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
 };
 
-function resetValues() {
+// Reset selections to the original normalized values
+function resetToDefault() {
     Object.keys(selectedFrameIdxValue).forEach(frameIdx => {
-        selectedFrameIdxValue[frameIdx] = originalFrameIdxValue[frameIdx];
+        selectedFrameIdxValue[frameIdx] = originalFrameIdxValue.value.get(Number(frameIdx));
     });
 };
 
-function save() {
-    const updated = Object.entries(selectedFrameIdxValue).map(([frameIdx, value]) => {
-        const recordIdx = frameIdxValues.value.get(Number(frameIdx)).matchingRecordIndex
-        return { frameIdx: Number(frameIdx), recordIdx: recordIdx, value: value }
-    });
-    errorMessageStore.addInfoMessage(`${props.prettyFeature} saved`);
-    emit("update-values", props.prettyFeature, updated);
-};
+
+function arraysEquals(a: string[], b: string[]) {
+    const aSorted = [...a].sort()
+    const bSorted = [...b].sort()
+
+    return a.length == b.length && aSorted.every((val, index) => val === bSorted[index])
+}
+
+// Compute differences between current and original selected values
+function getOriginalSelectedDifference(): Map<number, string[]> {
+    const result = new Map<number, string[]>()
+    Object.entries(selectedFrameIdxValue).forEach(([frameIdx, values]) => {
+        if (!values) return
+
+        const originalValues = originalFrameIdxValue.value.get(Number(frameIdx))
+        if (!originalValues || !arraysEquals(values, originalValues)) {
+            result.set(Number(frameIdx), values)
+        }
+    })
+    return result
+}
+
+
+// Watcher: auto-save on change
+// Save current (updated) values and emit to parent
+watch(selectedFrameIdxValue, _ => {
+    console.log(getOriginalSelectedDifference())
+    const update = new Map<number, string>()
+    getOriginalSelectedDifference().forEach((values, featureIdx) => update.set(featureIdx, values.join(separator.value)))
+    emit("update-values", props.prettyFeature, update);
+})
 
 onMounted(() => {
     frameIdxValues.value = props.frameIdxValues ?? new Map();
-    const featureValues = new Set<string | number>();
+    isFeatureMultiString.value = trackedFeatures.isFeatureMultiString(props.prettyFeature, true)
+    separator.value = trackedFeatures.getMultistringsSeparator
+
+    const featureValues = new Set<string>();
+
+    // Initialize value maps
     frameIdxValues.value.forEach((values, year) => {
         values.candidates.forEach(v => {
-            featureValues.add(v.rawValue).add(v.normalizedValue);
-            // Take value of the matching record
+            const rawString = v.rawValue?.toString()
+            const normString = v.normalizedValue?.toString()
+
+            if (isFeatureMultiString.value) {
+                rawString?.split(separator.value).forEach(v => featureValues.add(v))
+                normString?.split(separator.value).forEach(v => featureValues.add(v))
+
+            } else {
+                if (rawString) featureValues.add(rawString)
+                if (normString) featureValues.add(normString)
+            }
+
+            // Init selected and original values using matching record index
+            // Take the values from the candidate in the tracking chain (the matching record)
             if (!selectedFrameIdxValue[year] && v.recordIdx == values.matchingRecordIndex) {
                 const updated = props.updatedValues?.get(year)
-                selectedFrameIdxValue[year] = updated ? updated : v.normalizedValue;
-                originalFrameIdxValue[year] = v.normalizedValue;
+                // If updated value exist for this year use the updated value
+                const selectedValue = updated ? updated.toString() : normString
+
+                if (isFeatureMultiString.value) {
+                    selectedFrameIdxValue[year] = splitFilter(selectedValue)
+                    originalFrameIdxValue.value.set(year, splitFilter(normString));
+
+                } else {
+                    selectedFrameIdxValue[year] = [selectedValue]
+                    originalFrameIdxValue.value.set(year, [normString]);
+
+                }
+
             }
         });
     });
-    allValues.value = Array.from(featureValues);
+    allValues.value = Array.from(featureValues).filter(v => v);
 });
 </script>
 
 <style scoped>
-.table-header-row {
-    font-weight: 600;
-    color: var(--primary);
-}
-
 .chip {
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 400;
     border-radius: 16px;
-    padding: 0 8px;
+    margin: 1px;
+
 }
 
 .animate-pulse {
