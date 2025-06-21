@@ -443,7 +443,7 @@ onMounted(async () => {
         await trackedYearsStore.fetchAndStoreTrackedYears()
         await trackedFeaturesStore.fetchAndStoreTrackedFeatures()
         const f = await fetchMaterializedFrames(props.trackerID)
-        console.log(f.frames)
+
         if (f.frames) {
             materializedTrackerFrames.value = f.frames
         } else {

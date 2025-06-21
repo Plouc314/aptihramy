@@ -59,7 +59,7 @@
                         :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
                         @click:append-inner="showConfirmPassword = !showConfirmPassword" required />
 
-                    <v-checkbox v-model="isSuperuser" label="Superuser" color="primary" class="mt-3" />
+                    <v-checkbox v-model="isSuperuser" label="Admin" color="primary" class="mt-3" />
 
                     <v-btn class="mt-4" color="primary" type="submit" :disabled="!valid" block>
                         Create User
@@ -75,7 +75,8 @@
                 </v-card-title>
 
                 <v-card-text>
-                    Are you sure you want to delete this user ?
+                    Are you sure you want to delete this user ({{userToDelete.email}}) ?
+                    <br>
                     This action cannot be undone.
                 </v-card-text>
 

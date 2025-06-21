@@ -9,7 +9,7 @@
                 <v-col cols="2" class="header-cell">
                     Distance
                     <v-tooltip
-                        text="Represents the similarity score between the memory and and normalized values">
+                        text="Represents the similarity score between the memory and raw values">
                         <template v-slot:activator="{ props }">
                             <v-btn v-bind="props" icon="mdi-information-outline" variant="text">
                             </v-btn>
