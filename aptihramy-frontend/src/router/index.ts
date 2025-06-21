@@ -23,6 +23,17 @@ async function isSuperUser() {
   }
 }
 
+async function isDiskReady() {
+  const errorMessageStore = useErrorMessagesStore();
+  try {
+    const diskStatus = await checkDiskDataStatus();
+    return diskStatus.ready
+
+  } catch (error) {
+    errorMessageStore.handleError(error)
+  }
+}
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -35,10 +46,17 @@ const routes: RouteRecordRaw[] = [
     component: UploadDownloadPage,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      if (from.name === "LoginPage" || from.fullPath === "UploadPage") {
-        const databaseStatus = await checkDiskDataStatus();
-        if (databaseStatus.ready) {
-          return "/home"
+      if (from.name === "LoginPage" || from.name === "UploadPage") {
+        const errorMessageStore = useErrorMessagesStore();
+
+        try {
+          const databaseStatus = await checkDiskDataStatus();
+          if (databaseStatus.ready) {
+            return "/home"
+          }
+
+        } catch (error) {
+          errorMessageStore.handleError(error)
         }
       }
       return true
@@ -48,14 +66,20 @@ const routes: RouteRecordRaw[] = [
     path: '/home',
     name: 'HomePage',
     component: HomePage,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
   },
   {
     path: '/tracking-chain/:trackerID',
     name: 'TrackingChain',
     component: TrackingChain,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
 
   },
   {
@@ -63,7 +87,10 @@ const routes: RouteRecordRaw[] = [
     name: 'EditPage',
     component: EditPage,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    beforeEnter: async (to, from) => {
+      return isDiskReady()
+    },
   },
   {
     path: '/users',
@@ -72,7 +99,7 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      return isSuperUser()
+      return isSuperUser() && isDiskReady()
     },
   },
   {
@@ -82,7 +109,7 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      return isSuperUser()
+      return isSuperUser() && isDiskReady()
     },
   }
 ]
@@ -97,7 +124,7 @@ router.beforeEach(async (to, from) => {
 
   try {
     const isAuthenticated = await checkToken();
-
+    // User not logged in
     if (to.meta.requiresAuth && !isAuthenticated) {
       errorMessageStore.addErrorMessage('Token expired, redirecting to login page');
       return '/login';

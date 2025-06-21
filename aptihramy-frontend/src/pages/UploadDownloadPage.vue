@@ -2,6 +2,13 @@
     <TopBar :go-back-btn="true" title="Upload and Download" />
 
     <v-container>
+        <v-card v-if="diskError" class="mb-4" :color="diskReady ? 'info' : 'error'" variant="tonal">
+            <v-card-text class="error-content d-flex align-center">
+                <v-icon class="mr-2">mdi-alert-circle</v-icon>
+                <span>{{ diskError }}</span>
+            </v-card-text>
+        </v-card>
+
         <v-row>
             <!-- Upload Section -->
             <v-col cols="12" md="6">
