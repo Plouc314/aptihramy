@@ -46,9 +46,8 @@ const routes: RouteRecordRaw[] = [
     component: UploadDownloadPage,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      if (from.name === "LoginPage" || from.name === "UploadPage") {
+      if (from.name === "LoginPage" || from.fullPath === "/") {
         const errorMessageStore = useErrorMessagesStore();
-
         try {
           const databaseStatus = await checkDiskDataStatus();
           if (databaseStatus.ready) {

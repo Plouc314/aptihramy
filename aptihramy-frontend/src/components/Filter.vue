@@ -40,12 +40,15 @@ watch(selectedFeature, () => {
 
 // When the input changes, notify parent of the new value (lowercased)
 watch(input, (newInput) => {
-    const update: FilterState = {
-        id: props.id,
-        feature: selectedFeature.value,
-        input: newInput.toLowerCase()
-    };
-    emit('edit-filter', update);
+    if (newInput) {
+        const update: FilterState = {
+            id: props.id,
+            feature: selectedFeature.value,
+            input: newInput.toLowerCase()
+        };
+        emit('edit-filter', update);
+    }
+
 });
 
 // Trigger delete event with current filter state
