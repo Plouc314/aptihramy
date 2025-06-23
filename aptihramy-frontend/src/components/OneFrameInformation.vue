@@ -120,7 +120,7 @@ const frameInformation = computed(() => {
         const mem = props.memory == null ? null : props.memory[i]
         const score = diag.record_diagnostics == null ? null : diag.record_diagnostics.record_score
         const distances = diag.record_diagnostics == null ? null : diag.record_diagnostics.distances
-        console.log(distances)
+
         const values: CandidateRecordValues = {
             raw_value: diag.record_raw_values?.[i],
             normalized_value: diag.record_normalized_values?.[i],

@@ -33,7 +33,7 @@
             <v-col cols="auto" class="d-flex flex-column align-center">
                 <v-tooltip location="top">
                     <template v-slot:activator="{ props }">
-                        <v-btn icon color="primary" @click="changeNode(0, -1)" large v-bind="props">
+                        <v-btn icon color="primary" @click="changeNode(0, 1)" large v-bind="props">
                             <v-icon>mdi-chevron-up</v-icon>
                         </v-btn>
                     </template>
@@ -42,7 +42,7 @@
                 <v-divider thickness="20"></v-divider>
                 <v-tooltip location="bottom">
                     <template v-slot:activator="{ props }">
-                        <v-btn icon color="primary" @click="changeNode(0, 1)" large v-bind="props">
+                        <v-btn icon color="primary" @click="changeNode(0, -1)" large v-bind="props">
                             <v-icon>mdi-chevron-down</v-icon>
                         </v-btn>
                     </template>
@@ -258,17 +258,23 @@ function buildEdge(from: string, to: string, color: string, label: string, dashe
 function getNodeYPositions(offsetY: number, numNodes: number, hasMatchedYear: boolean): number[] {
     let positions = [];
 
-    let step = hasMatchedYear ? 0 : offsetY
-    for (let i = 0; i < Math.round(numNodes / 2); i++) {
+    if (hasMatchedYear) {
+        positions.push(0)
+    }
+
+
+    let step = -offsetY
+    for (let i = 0; i < Math.floor(numNodes / 2); i++) {
+        positions.push(step)
+        step -= offsetY
+    }
+
+    step = offsetY
+    for (let i = hasMatchedYear ? 1 : 0; i < Math.round(numNodes / 2); i++) {
         positions.push(step)
         step += offsetY
     }
 
-    step = -offsetY * Math.floor(numNodes / 2)
-    for (let i = 0; i < Math.floor(numNodes / 2); i++) {
-        positions.push(step)
-        step += offsetY
-    }
     return positions
 
 }
@@ -300,7 +306,7 @@ function setupEdges(mFrames: MaterializedTrackerFrame[]) {
                         encodeId(nextValidIdx, r),
                         getEdgeColor(recordDiagnostic.record_score),
                         `${Math.round(recordDiagnostic.record_score * 100) / 100}`,
-                        r !== 0 
+                        r !== 0
                     ));
                 });
             }
@@ -389,8 +395,8 @@ function changeNode(offsetX: number, offsetY: number) {
         selectedNodeID.value = encodeId(0, 0)
     } else {
         const decoded = decodeId(selectedNodeID.value)
-        const records = materializedTrackerFrames.value[decoded.x].records
         const x = (decoded.x + offsetX + materializedTrackerFrames.value.length) % materializedTrackerFrames.value.length
+        const records = materializedTrackerFrames.value[x].records
         const y = (decoded.y + offsetY + records.length) % records.length
         selectedNodeID.value = encodeId(x, y)
     }
