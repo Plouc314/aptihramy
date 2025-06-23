@@ -79,7 +79,7 @@
                                 {{ getNormalizedValue(entry.frame_idx, entry.record_idx, entry.field_idx) }}
                             </v-col>
                             <v-col class="table-data-text">
-                                {{ getUpdatedValue(entry.value.toString(), entry.field_idx) }}
+                                {{ getUpdatedValue(entry.value?.toString(), entry.field_idx) }}
                             </v-col>
 
                         </v-row>
@@ -152,7 +152,7 @@ const originalValues = ref<Map<number, Map<number, RecordModel>>>(new Map())
  */
 function getUpdatedValue(value: string, field_idx: number) {
     const prettyFeature = trackedFeatures.getTrackedFeature(field_idx, true)
-    if (!prettyFeature) return NO_INFORMATION
+    if (!prettyFeature || !value) return NO_INFORMATION
 
     if (trackedFeatures.isFeatureMultiString(prettyFeature, true)) {
         return value.split(trackedFeatures.getMultistringsSeparator).sort().join(", ")

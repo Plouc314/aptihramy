@@ -31,7 +31,7 @@
 
         <v-col>
             <v-chip class="chip" v-for="(rawValue, rawIdx) in getRawValue(frameIdx)" :key="rawIdx">{{ rawValue
-                }}</v-chip>
+            }}</v-chip>
         </v-col>
 
         <!-- Normalized value -->
@@ -174,14 +174,14 @@ function replaceValue() {
     if (!valueToReplace.value || !replacementValue.value) return;
 
     animatedFrameIdxs.value.clear();
-    const target = valueToReplace.value === "All" ?
-        Object.keys(selectedFrameIdxValue) :
-        Object.keys(selectedFrameIdxValue)
-            .filter(year => selectedFrameIdxValue[year] === valueToReplace.value);
+    let target = Object.keys(selectedFrameIdxValue)
+    if (valueToReplace.value !== "All") {
+        target = target.filter(year => selectedFrameIdxValue[year].includes(valueToReplace.value))
+    }
 
     target.forEach(year => {
         animatedFrameIdxs.value.add(Number(year));
-        selectedFrameIdxValue[year] = replacementValue.value!;
+        selectedFrameIdxValue[year] = [replacementValue.value!];
     });
 
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
@@ -220,7 +220,6 @@ function getOriginalSelectedDifference(): Map<number, string[]> {
 // Watcher: auto-save on change
 // Save current (updated) values and emit to parent
 watch(selectedFrameIdxValue, _ => {
-    console.log(getOriginalSelectedDifference())
     const update = new Map<number, string>()
     getOriginalSelectedDifference().forEach((values, featureIdx) => update.set(featureIdx, values.join(separator.value)))
     emit("update-values", props.prettyFeature, update);
