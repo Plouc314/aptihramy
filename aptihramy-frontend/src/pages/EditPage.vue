@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { DateTime } from 'luxon';
 import EditMetrics from "@/components/EditMetrics.vue";
 import TopBar from "@/components/TopBars/TopBar.vue";
 import { MaterializedTrackerFrame } from "@/types/api/api";
@@ -215,10 +216,9 @@ async function saveSelectedValues() {
             id: undefined,
             author: userInfo.email,
             accepted: false,
-            timestamp: new Date().toString(),
+            timestamp: DateTime.local().toISO(),
             entries,
         };
-
         await postUpdateBatch(batch);
         lastUpdatedValues.value = updatedValues.value
         errorMessageStore.addInfoMessage("Changes successfully stored");

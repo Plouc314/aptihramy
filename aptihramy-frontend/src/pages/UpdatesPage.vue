@@ -26,7 +26,7 @@
                 </v-card>
 
                 <!-- Valid batch with entries -->
-                <v-col v-else>
+                <v-card v-else>
                     <v-expansion-panel-title>
                         <v-row align="center">
                             <v-col cols="2" class="text-subtitle-1 font-weight-medium">
@@ -84,7 +84,7 @@
 
                         </v-row>
                     </v-expansion-panel-text>
-                </v-col>
+                </v-card>
             </v-expansion-panel>
 
         </v-expansion-panels>
@@ -199,7 +199,10 @@ function getNormalizedValue(frame_idx: number, record_idx: number, field_idx: nu
  */
 function getRawOrNormalizedValue(frame_idx: number, record_idx: number, field_idx: number, normalized: boolean): string {
     const prettyFeature = trackedFeatures.getTrackedFeature(field_idx, true)
-    if (!prettyFeature) return NO_INFORMATION
+    if (!prettyFeature) {
+        errorMessageStore.addErrorMessage("Could not get the tracked features")
+        return NO_INFORMATION
+    } 
 
     const entry = originalValues.value.get(frame_idx)?.get(record_idx)
     if (!entry) return NO_INFORMATION
