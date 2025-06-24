@@ -19,8 +19,9 @@
     </v-card>
 
     <v-row class="table-header-row">
-        <v-col v-for="header in ['Year', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']" :key="header"
-            :cols="header === 'Candidate Values' ? 3 : undefined">
+        <v-col
+            v-for="header in ['Year', 'Index in file', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']"
+            :key="header" :cols="header === 'Candidate Values' ? 3 : undefined">
             {{ header }}
         </v-col>
     </v-row>
@@ -28,10 +29,10 @@
     <v-row v-for="(frameIdx, idx) in frameIdxValues.keys()" :key="idx" class="table-data-row">
         <!-- Year -->
         <v-col>{{ trackedYearsStore.getYearFromFrameIdx(frameIdx) }}</v-col>
-
+        <v-col>{{ getMatchingRecordIdx(frameIdx) }}</v-col>
         <v-col>
             <v-chip class="chip" v-for="(rawValue, rawIdx) in getRawValue(frameIdx)" :key="rawIdx">{{ rawValue
-                }}</v-chip>
+            }}</v-chip>
         </v-col>
 
         <!-- Normalized value -->
@@ -146,6 +147,12 @@ function getNormalizedValue(frameIdx: number): string[] {
 function getRawValue(frameIdx: number): string[] {
     return getRawOrNormalizedValue(frameIdx, false)
 }
+
+function getMatchingRecordIdx(frameIdx: number): number {
+    return frameIdxValues.value.get(frameIdx).matchingRecordIndex + 2
+
+}
+
 // Helper function to retrieve raw or normalized values for a frame index
 function getRawOrNormalizedValue(frameIdx: number, normalized: boolean): string[] {
     const matchCandidates = frameIdxValues.value.get(frameIdx)
@@ -177,7 +184,7 @@ function replaceValue() {
     let target = Object.keys(selectedFrameIdxValue)
 
 
-    
+
     if (valueToReplace.value === "Empty") {
         target = target.filter(year => selectedFrameIdxValue[year]?.length == 0)
     } else if (valueToReplace.value !== "All") {
