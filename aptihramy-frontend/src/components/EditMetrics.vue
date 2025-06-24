@@ -176,8 +176,8 @@ function replaceValue() {
     animatedFrameIdxs.value.clear();
     let target = Object.keys(selectedFrameIdxValue)
 
-    console.log(selectedFrameIdxValue)
 
+    
     if (valueToReplace.value === "Empty") {
         target = target.filter(year => selectedFrameIdxValue[year]?.length == 0)
     } else if (valueToReplace.value !== "All") {
@@ -189,7 +189,7 @@ function replaceValue() {
         selectedFrameIdxValue[year] = [replacementValue.value === "Empty" ? "" : replacementValue.value!];
     });
 
-    console.log(selectedFrameIdxValue)
+
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
 };
 
@@ -228,7 +228,7 @@ function getOriginalSelectedDifference(): Map<number, string[]> {
 watch(selectedFrameIdxValue, _ => {
     const update = new Map<number, string>()
     getOriginalSelectedDifference().forEach((values, featureIdx) => update.set(featureIdx, values.join(separator.value)))
-    console.log(update)
+
     emit("update-values", props.prettyFeature, update);
 })
 
@@ -276,8 +276,7 @@ onMounted(() => {
             }
         });
     });
-    console.log("original")
-    console.log(originalFrameIdxValue.value)
+
     allValues.value = Array.from(featureValues).filter(v => v)
 
 });
