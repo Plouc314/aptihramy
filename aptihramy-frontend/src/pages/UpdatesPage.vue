@@ -252,6 +252,7 @@ async function handleConfirm() {
         }
         // Remove the processed batch from list
         updateBatches.value = updateBatches.value.filter(batch => batch.id !== batchId.value)
+        expandedIndexes.value = []
         batchId.value = -1
         dialogMode.value = null
 

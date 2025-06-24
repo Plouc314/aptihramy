@@ -21,7 +21,7 @@
     <v-row class="table-header-row">
         <v-col
             v-for="header in ['Year', 'Index in file', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']"
-            :key="header" :cols="header === 'Candidate Values' ? 3 : undefined">
+            :key="header" :cols="header === 'Candidate values' ? 3 : undefined">
             {{ header }}
         </v-col>
     </v-row>
@@ -50,7 +50,7 @@
         </v-col>
 
         <!-- Candidate values -->
-        <v-col>
+        <v-col cols="3">
             <v-chip v-if="candidateValues(frameIdx).length !== 0" v-for="candidateValue in candidateValues(frameIdx)"
                 :key="candidateValue" class="chip">
                 {{ candidateValue }}

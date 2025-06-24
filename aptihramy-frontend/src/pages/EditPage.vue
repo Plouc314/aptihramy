@@ -210,11 +210,12 @@ async function saveSelectedValues() {
         });
 
         const userInfo = await fetchCurrentUserInformation()
+
         const batch: UpdateBatch = {
             id: undefined,
             author: userInfo.email,
             accepted: false,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toString(),
             entries,
         };
 
