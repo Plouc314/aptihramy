@@ -31,7 +31,7 @@
 
         <v-col>
             <v-chip class="chip" v-for="(rawValue, rawIdx) in getRawValue(frameIdx)" :key="rawIdx">{{ rawValue
-            }}</v-chip>
+                }}</v-chip>
         </v-col>
 
         <!-- Normalized value -->
@@ -63,14 +63,15 @@
         <v-col>
             <div v-if="isFeatureMultiString">
                 <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues" label="Select value" multiple
+                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = !val || val.includes('Empty') ? [] : val"
                     clearable dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
                     variant="outlined" />
             </div>
             <div v-else>
                 <v-combobox :model-value="selectedFrameIdxValue[frameIdx][0] ?? null"
-                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = val ? [val] : []" :items="allValues"
-                    label="Select value" :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
-                    variant="outlined" />
+                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = val ? [val == 'Empty' ? '' : val] : []"
+                    :items="allValues" label="Select value"
+                    :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }" variant="outlined" />
             </div>
         </v-col>
     </v-row>
@@ -109,15 +110,14 @@ const valueToReplace = ref<string | null>(null);
 // Replacement value for the replace functionality
 const replacementValue = ref<string | null>(null);
 
-// Computed property for the combobox, including an "All" option
+// Computed property for the combobox, including an "All" and "Empty" option
 const allValuesToReplace = computed(() => ["All", ...allValues.value]);
 
 const isFeatureMultiString = ref(true)
 const separator = ref<string>("|")
 
 // Splits the given string with the separator and removes null, undefined and empty strings
-function splitFilter(a: string | null): string[] | null {
-    if (!a) return null
+function splitFilter(a: string): string[] {
     return a.split(separator.value).filter(s => s)
 }
 
@@ -175,15 +175,21 @@ function replaceValue() {
 
     animatedFrameIdxs.value.clear();
     let target = Object.keys(selectedFrameIdxValue)
-    if (valueToReplace.value !== "All") {
+
+    console.log(selectedFrameIdxValue)
+
+    if (valueToReplace.value === "Empty") {
+        target = target.filter(year => selectedFrameIdxValue[year]?.length == 0)
+    } else if (valueToReplace.value !== "All") {
         target = target.filter(year => selectedFrameIdxValue[year].includes(valueToReplace.value))
     }
 
     target.forEach(year => {
         animatedFrameIdxs.value.add(Number(year));
-        selectedFrameIdxValue[year] = [replacementValue.value!];
+        selectedFrameIdxValue[year] = [replacementValue.value === "Empty" ? "" : replacementValue.value!];
     });
 
+    console.log(selectedFrameIdxValue)
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
 };
 
@@ -222,6 +228,7 @@ function getOriginalSelectedDifference(): Map<number, string[]> {
 watch(selectedFrameIdxValue, _ => {
     const update = new Map<number, string>()
     getOriginalSelectedDifference().forEach((values, featureIdx) => update.set(featureIdx, values.join(separator.value)))
+    console.log(update)
     emit("update-values", props.prettyFeature, update);
 })
 
@@ -231,12 +238,14 @@ onMounted(() => {
     separator.value = trackedFeatures.getMultistringsSeparator
 
     const featureValues = new Set<string>();
+    featureValues.add("Empty")
 
     // Initialize value maps
     frameIdxValues.value.forEach((values, year) => {
         values.candidates.forEach(v => {
-            const rawString = v.rawValue?.toString()
-            const normString = v.normalizedValue?.toString()
+
+            const rawString = v.rawValue ? v.rawValue.toString() : ""
+            const normString = v.normalizedValue ? v.normalizedValue.toString() : ""
 
             if (isFeatureMultiString.value) {
                 rawString?.split(separator.value).forEach(v => featureValues.add(v))
@@ -267,7 +276,10 @@ onMounted(() => {
             }
         });
     });
-    allValues.value = Array.from(featureValues).filter(v => v);
+    console.log("original")
+    console.log(originalFrameIdxValue.value)
+    allValues.value = Array.from(featureValues).filter(v => v)
+
 });
 </script>
 
