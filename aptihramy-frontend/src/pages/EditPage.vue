@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { DateTime } from 'luxon';
 import EditMetrics from "@/components/EditMetrics.vue";
 import TopBar from "@/components/TopBars/TopBar.vue";
 import { MaterializedTrackerFrame } from "@/types/api/api";
@@ -88,11 +89,46 @@ const expandedFeatureIndexes = ref<number[]>([]);
 const allPrettyFeatures = computed(() => trackedFeaturesStore.getTrackedFeatures?.pretty_features ?? []);
 // feature -> frameIdx ->  updated value
 const updatedValues = ref(new Map<string, Map<number, string | number>>());
+const lastUpdatedValues = ref(new Map<string, Map<number, string | number>>());
 
 function updateValues(prettyFeature: string, frameRecordValue: Map<number, string | number>) {
     updatedValues.value.set(prettyFeature, frameRecordValue)
 }
 
+
+/**
+ * Compares the updated values with the last updated feature values to check
+ * if any changes have been made by the user. Prevents the user from creating the same batch multiple times.
+ *
+ * @returns {boolean} - Returns `true` if all updated values are identical
+ *                      to the original (normalized) values, `false` otherwise.
+ */
+function oldpdateUAndNewUpdateAreEqual(): boolean {
+    let equal = true;
+    // Iterate through each updated feature and its associated frame/value map
+    updatedValues.value.forEach((updatedFrameMap, feature) => {
+        if (!equal) return; // Stop processing if already determined not equal
+        // Get the original values for this feature
+        const originalFrameMap = lastUpdatedValues.value.get(feature);
+        if (!originalFrameMap) {
+            equal = false;
+            return;
+        }
+        // Compare each updated value to its original counterpart
+        updatedFrameMap.forEach((updatedValue, frameIdx) => {
+            const oldValue = originalFrameMap.get(frameIdx);
+            if (!oldValue) {
+                equal = false;
+                return;
+            }
+            if (oldValue !== updatedValue) {
+                equal = false
+                return
+            }
+        });
+    });
+    return equal;
+}
 
 /**
  * Compares the updated values with the original feature values to check
@@ -141,7 +177,7 @@ function originalAndUpdatedAreEqual(): boolean {
 
 
 async function saveSelectedValues() {
-    if (updatedValues.value.size == 0 || originalAndUpdatedAreEqual()) {
+    if (updatedValues.value.size == 0 || originalAndUpdatedAreEqual() || oldpdateUAndNewUpdateAreEqual()) {
         errorMessageStore.addInfoMessage("No changes to save");
         return
     }
@@ -172,12 +208,13 @@ async function saveSelectedValues() {
             id: undefined,
             author: userInfo.email,
             accepted: false,
-            timestamp: new Date().toISOString(),
+            timestamp: DateTime.local().toISO(),
             entries,
         };
 
-    
+
         await postUpdateBatch(batch);
+        lastUpdatedValues.value = updatedValues.value
         errorMessageStore.addInfoMessage("Changes successfully stored");
     } catch (err) {
         errorMessageStore.handleError(err);

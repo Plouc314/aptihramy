@@ -40,6 +40,7 @@ watch(selectedFeature, () => {
 
 // When the input changes, notify parent of the new value (lowercased)
 watch(input, (newInput) => {
+    if (!newInput) return
     const update: FilterState = {
         id: props.id,
         feature: selectedFeature.value,
