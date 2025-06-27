@@ -26,7 +26,7 @@
                 </v-card>
 
                 <!-- Valid batch with entries -->
-                <v-col v-else>
+                <v-card v-else>
                     <v-expansion-panel-title>
                         <v-row align="center">
                             <v-col cols="2" class="text-subtitle-1 font-weight-medium">
@@ -79,12 +79,11 @@
                                 {{ getNormalizedValue(entry.frame_idx, entry.record_idx, entry.field_idx) }}
                             </v-col>
                             <v-col class="table-data-text">
-                                {{ getUpdatedValue(entry.value.toString(), entry.field_idx) }}
+                                {{ getUpdatedValue(entry.value?.toString(), entry.field_idx) }}
                             </v-col>
-
                         </v-row>
                     </v-expansion-panel-text>
-                </v-col>
+                </v-card>
             </v-expansion-panel>
 
         </v-expansion-panels>
@@ -152,7 +151,7 @@ const originalValues = ref<Map<number, Map<number, RecordModel>>>(new Map())
  */
 function getUpdatedValue(value: string, field_idx: number) {
     const prettyFeature = trackedFeatures.getTrackedFeature(field_idx, true)
-    if (!prettyFeature) return NO_INFORMATION
+    if (!prettyFeature || !value) return NO_INFORMATION
 
     if (trackedFeatures.isFeatureMultiString(prettyFeature, true)) {
         return value.split(trackedFeatures.getMultistringsSeparator).sort().join(", ")
@@ -252,6 +251,7 @@ async function handleConfirm() {
         }
         // Remove the processed batch from list
         updateBatches.value = updateBatches.value.filter(batch => batch.id !== batchId.value)
+        expandedIndexes.value = []
         batchId.value = -1
         dialogMode.value = null
 

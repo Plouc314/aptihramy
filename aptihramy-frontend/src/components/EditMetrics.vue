@@ -19,8 +19,9 @@
     </v-card>
 
     <v-row class="table-header-row">
-        <v-col v-for="header in ['Year', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']" :key="header"
-            :cols="header === 'Candidate Values' ? 3 : undefined">
+        <v-col
+            v-for="header in ['Year', 'Index in file', 'Raw value', 'Normalized value', 'Candidate values', 'Selected']"
+            :key="header" :cols="header === 'Candidate values' ? 3 : undefined">
             {{ header }}
         </v-col>
     </v-row>
@@ -28,7 +29,7 @@
     <v-row v-for="(frameIdx, idx) in frameIdxValues.keys()" :key="idx" class="table-data-row">
         <!-- Year -->
         <v-col>{{ trackedYearsStore.getYearFromFrameIdx(frameIdx) }}</v-col>
-
+        <v-col>{{ getMatchingRecordIdx(frameIdx) }}</v-col>
         <v-col>
             <v-chip class="chip" v-for="(rawValue, rawIdx) in getRawValue(frameIdx)" :key="rawIdx">{{ rawValue
                 }}</v-chip>
@@ -49,7 +50,7 @@
         </v-col>
 
         <!-- Candidate values -->
-        <v-col>
+        <v-col cols="3">
             <v-chip v-if="candidateValues(frameIdx).length !== 0" v-for="candidateValue in candidateValues(frameIdx)"
                 :key="candidateValue" class="chip">
                 {{ candidateValue }}
@@ -62,15 +63,17 @@
         <!-- Selected value -->
         <v-col>
             <div v-if="isFeatureMultiString">
-                <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues" label="Select value" multiple
-                    clearable dense x-large :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
-                    variant="outlined" />
+                <v-combobox v-model="selectedFrameIdxValue[frameIdx]" :items="allValues"
+                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = !val || val.includes('Empty') ? [] : val"
+                    label="Select value" multiple clearable dense x-large
+                    :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }" variant="outlined" />
             </div>
             <div v-else>
+
                 <v-combobox :model-value="selectedFrameIdxValue[frameIdx][0] ?? null"
-                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = val ? [val] : []" :items="allValues"
-                    label="Select value" :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }"
-                    variant="outlined" />
+                    @update:model-value="val => selectedFrameIdxValue[frameIdx] = val ? [val == 'Empty' ? '' : val] : []"
+                    :items="allValues" label="Select value"
+                    :class="{ 'animate-pulse': animatedFrameIdxs.has(frameIdx) }" variant="outlined" />
             </div>
         </v-col>
     </v-row>
@@ -109,15 +112,14 @@ const valueToReplace = ref<string | null>(null);
 // Replacement value for the replace functionality
 const replacementValue = ref<string | null>(null);
 
-// Computed property for the combobox, including an "All" option
+// Computed property for the combobox, including an "All" and "Empty" option
 const allValuesToReplace = computed(() => ["All", ...allValues.value]);
 
 const isFeatureMultiString = ref(true)
 const separator = ref<string>("|")
 
 // Splits the given string with the separator and removes null, undefined and empty strings
-function splitFilter(a: string | null): string[] | null {
-    if (!a) return null
+function splitFilter(a: string): string[] {
     return a.split(separator.value).filter(s => s)
 }
 
@@ -145,6 +147,10 @@ function getNormalizedValue(frameIdx: number): string[] {
 // Get the raw value for a frame index
 function getRawValue(frameIdx: number): string[] {
     return getRawOrNormalizedValue(frameIdx, false)
+}
+
+function getMatchingRecordIdx(frameIdx: number): number {
+    return frameIdxValues.value.get(frameIdx).matchingRecordIndex + 2
 }
 // Helper function to retrieve raw or normalized values for a frame index
 function getRawOrNormalizedValue(frameIdx: number, normalized: boolean): string[] {
@@ -174,14 +180,18 @@ function replaceValue() {
     if (!valueToReplace.value || !replacementValue.value) return;
 
     animatedFrameIdxs.value.clear();
-    const target = valueToReplace.value === "All" ?
-        Object.keys(selectedFrameIdxValue) :
-        Object.keys(selectedFrameIdxValue)
-            .filter(year => selectedFrameIdxValue[year] === valueToReplace.value);
+    let target = Object.keys(selectedFrameIdxValue)
+
+    console.log(selectedFrameIdxValue)
+    if (valueToReplace.value === "Empty") {
+        target = target.filter(year => selectedFrameIdxValue[year]?.length == 0 || selectedFrameIdxValue[year]?.includes(""))
+    } else if (valueToReplace.value !== "All") {
+        target = target.filter(year => selectedFrameIdxValue[year]?.includes(valueToReplace.value))
+    }
 
     target.forEach(year => {
         animatedFrameIdxs.value.add(Number(year));
-        selectedFrameIdxValue[year] = replacementValue.value!;
+        selectedFrameIdxValue[year] = replacementValue.value === "Empty" ? [] : [replacementValue.value]
     });
 
     setTimeout(() => animatedFrameIdxs.value.clear(), 1500);
@@ -232,12 +242,13 @@ onMounted(() => {
     separator.value = trackedFeatures.getMultistringsSeparator
 
     const featureValues = new Set<string>();
+    featureValues.add("Empty")
 
     // Initialize value maps
     frameIdxValues.value.forEach((values, year) => {
         values.candidates.forEach(v => {
-            const rawString = v.rawValue?.toString()
-            const normString = v.normalizedValue?.toString()
+            const rawString = v.rawValue ? v.rawValue.toString() : ""
+            const normString = v.normalizedValue ? v.normalizedValue.toString() : ""
 
             if (isFeatureMultiString.value) {
                 rawString?.split(separator.value).forEach(v => featureValues.add(v))

@@ -46,7 +46,7 @@ const routes: RouteRecordRaw[] = [
     component: UploadDownloadPage,
     meta: { requiresAuth: true },
     beforeEnter: async (to, from) => {
-      if (from.name === "LoginPage" || from.name === "UploadPage") {
+      if (from.fullPath === '/login' || from.fullPath === '/') {
         const errorMessageStore = useErrorMessagesStore();
 
         try {
